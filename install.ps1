@@ -55,25 +55,46 @@ foreach ($d in (Get-ChildItem $PkgsDir -Directory | Sort-Object Name)) {
   if ($LASTEXITCODE -eq 0) { Ok $name; $pass += $name } else { Err "$name（可单独重试）"; $fail += $name }
 }
 
-Info '[2/5] 依赖（**不在本仓** —— 从它们各自的仓装）'
+Info '[2/5] 依赖（**不在本仓** —— 从它们各自的【Release 资产】装）'
 # 依据（委托方 2026-09-18）：「我没让你把仓库合并，我让你做的是把【公司相关的】合并 omc」
-$depRepos = @(
-  @{ Name = 'dsh-super-injector'; Url = 'https://github.com/yjh051108/dsh-super-injector'; Why = '运行时注入（dev_* 工具全家桶）—— 缺它则【注入】能力不可用' },
-  @{ Name = 'dsh-engram-relay';   Url = 'https://github.com/yjh051108/dsh-engram-relay';   Why = '记忆图谱（engram）—— 缺它则【跨会话记忆】不可用' }
+#
+# 为什么装 tgz 而不是 `add <git URL>`（2026-09-19 · 实测三条路）：
+#   git URL  => FAIL ERR_PNPM_GIT_DEP_PREPARE_NOT_ALLOWED（两个包都有 prepare；加 allowlist 后又撞 npm 404）
+#   远程 tgz URL => FAIL（pnpm 走网络 TLS 错）
+#   本地 tgz  => exit=0  <= 所以先下载到临时目录、再 add 本地文件
+$depAssets = @(
+  @{ Name = 'dsh-super-injector'; Url = 'https://github.com/yjh051108/dsh-super-injector/releases/download/v0.3.4/dsh-external-dsh-super-injector-0.3.4.tgz'; Why = '运行时注入（dev_* 工具全家桶）—— 缺它则【注入】能力不可用' },
+  @{ Name = 'dsh-engram-relay';   Url = 'https://github.com/yjh051108/dsh-engram-relay/releases/download/v0.4.1/dsh-external-dsh-engram-relay-0.4.1.tgz';   Why = '记忆图谱（engram）—— 缺它则【跨会话记忆】不可用' }
 )
+$depTmp = Join-Path ([System.IO.Path]::GetTempPath()) ("dsh-omc-deps-" + [guid]::NewGuid().ToString('N').Substring(0,8))
+New-Item -ItemType Directory -Path $depTmp -Force | Out-Null
 if ($SkipDeps) { Warn 'SKIP_DEPS=1 —— 跳过两个依赖'; $skip += 'deps' }
 else {
-  foreach ($dep in $depRepos) {
-    if ($DryRun) { Ok "$($dep.Name)（依赖）：将执行 $($DshCmd -join ' ') plugin --profile $Profile add $($dep.Url)"; $pass += "$($dep.Name)(dep)"; continue }
-    & $DshCmd[0] $DshCmd[1..($DshCmd.Count-1)] plugin --profile $Profile add $dep.Url *> $null
-    if ($LASTEXITCODE -eq 0) { Ok "$($dep.Name)（依赖）—— $($dep.Why)"; $pass += "$($dep.Name)(dep)" }
-    else {
-      Warn "! 无法获取 $($dep.Name)（网络/仓不可达）=> 本次未装它"
+  foreach ($dep in $depAssets) {
+    $tarball = Join-Path $depTmp ($dep.Name + '.tgz')
+    if ($DryRun) { Ok "$($dep.Name)（依赖）：将下载 $($dep.Url) => $($DshCmd -join ' ') plugin --profile $Profile add <本地 tgz>"; $pass += "$($dep.Name)(dep)"; continue }
+    # 下载（PS 5.1 要显式 TLS 1.2；并禁用证书吊销检查 —— 受限网络里 schannel 会报 CRYPT_E_NO_REVOCATION_CHECK）
+    $oldCb = [System.Net.ServicePointManager]::ServerCertificateValidationCallback
+    try {
+      [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+      Invoke-WebRequest -Uri $dep.Url -OutFile $tarball -UseBasicParsing -TimeoutSec 300
+    } catch { Warn "! 下载失败 $($dep.Name)：$($_.Exception.Message)"; }
+    finally { [System.Net.ServicePointManager]::ServerCertificateValidationCallback = $oldCb }
+    if (-not (Test-Path $tarball) -or (Get-Item $tarball).Length -eq 0) {
+      Warn "! 下载不到 $($dep.Name) 的发布件（$($dep.Url)）=> 本次未装它"
       Warn "   后果：$($dep.Why)"
-      Warn "   单独装：$($DshCmd -join ' ') plugin --profile $Profile add $($dep.Url)"
+      $depMissing += $dep.Name; continue
+    }
+    & $DshCmd[0] $DshCmd[1..($DshCmd.Count-1)] plugin --profile $Profile add $tarball *> $null
+    if ($LASTEXITCODE -eq 0) { Ok "$($dep.Name)（依赖 · 由 Release 资产装）—— $($dep.Why)"; $pass += "$($dep.Name)(dep)" }
+    else {
+      Warn "! 装不上 $($dep.Name) 的发布件 => 本次未装它"
+      Warn "   后果：$($dep.Why)"
+      Warn "   单独装：$($DshCmd -join ' ') plugin --profile $Profile add $tarball"
       $depMissing += $dep.Name
     }
   }
+  Remove-Item $depTmp -Recurse -Force -ErrorAction SilentlyContinue
 }
 
 Info '[3/5] 自检：**装到 profile 里的**注入器含 R1–R7 兜底吗'
