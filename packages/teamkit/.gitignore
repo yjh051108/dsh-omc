@@ -1,0 +1,16 @@
+# 本插件自己的状态与构建产物**不进 git** —— 它们是运行时数据，不是源码。
+#
+# `.teamkit/` 是默认的 stateDir（含 forks/ 快照/ 日志/ CHANGELOG）：
+# 每个人跑起来都不一样，提交它等于把"我的成员叫什么、我改了哪条"推给所有人。
+# 要**共享**上游更新说明，用 `teamkit promote --note "..."`（它写的是 CHANGELOG，
+# 但那是给人看的记账；真要共享上游内容，改的是上游技能根，不是这里）。
+.teamkit/
+
+# 包内 skills/ **不忽略**：那是 `scripts/sync-skills.mjs` 从仓内 skills/ 生成的
+# 打包副本，必须随包提交（开源用户拿到的 tgz 里要有它）。
+# 但同步脚本的临时产物忽略掉：
+*.tmp
+.selftest-*.txt
+
+node_modules/
+*.tgz
