@@ -1,14 +1,9 @@
 Copyright (c) 2026 yjh051108 and contributors
 
-★ 本仓包含多个包，**各自许可证不同** —— 以各包 `package.json` 的 `license` 字段为准：
+★ 本仓是【OMC 公司套件】—— 包含 2 个包，**都是 BSD-3-Clause**：
 
     packages/teamkit              BSD-3-Clause
     packages/org-panel            BSD-3-Clause
-    packages/tool-output-guard    BSD-3-Clause
-    packages/issue-watch          BSD-3-Clause
-    packages/model-fit            BSD-3-Clause
-    packages/symbiote             BSD-3-Clause
-    packages/web-tools            Apache-2.0      ← ★ 注意：这一个不是 BSD
 
     docs/company/                 方法论文档（随仓发布；无单独许可证声明）
 
@@ -16,22 +11,22 @@ Copyright (c) 2026 yjh051108 and contributors
   （`packages/<包>/LICENSE` —— 各包均已随附）。
 
 ---------------------------------------------------------------------------
-★ 为什么这里不写一份统一的许可证：
+★ 两个【依赖】的许可证在它们各自的仓（**它们不在本仓**）：
 ```
-本仓是【单仓库化的套件】（把原先 8 个分仓并成一个仓），
-而其中 web-tools 采用 Apache-2.0，其余采用 BSD-3-Clause。
-
-⇒ 若在仓根放一份统一的 BSD-3-Clause ⇒ 会与 web-tools 的声明不符
-  ⇒ 那正是本项目判据 check-license-matches-declaration 要拦的
-     （"声明与文件不符"）—— 见 docs/company/INSTALL-PITFALLS.md 一族的纪律。
-
-⇒ 所以根 LICENSE 只做两件事：
-  ① 声明版权归属
-  ② 列出【各包的实际许可证】并指向各自的 LICENSE 文件
+  · dsh-super-injector  ⇒ https://github.com/yjh051108/dsh-super-injector
+  · dsh-engram-relay    ⇒ https://github.com/yjh051108/dsh-engram-relay
+  ⇒ ★ 本仓根 LICENSE 【不覆盖】它们 —— 以各自仓的 `package.json` 的 `license` 字段为准
+```
+★ 本仓根为什么仍放一份说明（而不是把 BSD-3-Clause 正文当成"全仓许可"）：
+```
+· ★ 本仓只有 2 个包，而它们【都是 BSD-3-Clause】⇒ 正文与声明一致 ✅
+· ★★ 而 `docs/company/`（文档）与两个【不在本仓】的依赖 ⇒ 不属本 LICENSE 覆盖范围
+  ⇒ 所以这里写清"覆盖哪几个、依赖去哪看"，而不是一句笼统的"本仓均以 BSD-3 授权"
+  ⇒ ★ 依据：本项目判据 `check-license-matches-declaration`（**声明必须与文件一致**）
 ```
 
 ---------------------------------------------------------------------------
-BSD-3-Clause（适用于上表列 BSD-3-Clause 的包）：
+BSD-3-Clause（适用于上表 2 个包）：
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -58,6 +53,3 @@ INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
 CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 POSSIBILITY OF SUCH DAMAGE.
-
----------------------------------------------------------------------------
-Apache-2.0（适用于 packages/web-tools）：完整文本见 `packages/web-tools/LICENSE`。

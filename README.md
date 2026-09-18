@@ -1,25 +1,26 @@
 # dsh-omc —— 一家 AI 公司，一个仓
 
-> **一句话**：**装它，你就有一家公司** —— 公司层（角色档 / 技能 / 组织层 / 指南）+ 看得见的侧边栏 + 运行时注入器 + 自带工具。
+> **一句话**：**装它，你就有一家公司** —— 公司层（角色档 / 技能 / 组织层 / 指南）+ 看得见的侧边栏「办公室」+ 怎么开公司的方法论。
 
 ---
 
 ## 〇 · 这个仓是什么（**与别的仓的关系 · 先读这段**）
 
 ```
-★ **本仓（`dsh-omc`）是【OMC 套件】的唯一真源**：
-  预设 / 侧边栏 / 运行时注入器 / 自带工具 —— **全部在这一个仓里演进**。
-  ⇒ 原先散在 8 个仓里的东西，现已合并到这里（**分仓已标"已并入"归档，不删**）
-⇒ ⚠️ **两处例外（它们是"依赖"，源码不在本仓）** —— `install.sh` 会自动装上：
-  · **`dsh-super-injector`**（运行时注入器）—— 它**同时**是 `dsh-routing-suite/injector`
-    ⇒ ★ **那是【另一条独立发布线】**（`dsh-routing-suite` 自己的 README 逐字：
-      「三个组件随本仓库统一演进…**上游独立仓库保留用于独立发布**」）
-    ⇒ **若两处不一致 ⇒ 以本仓 `packages/super-injector/` 为准**
-  · **`dsh-engram-relay`**（记忆图谱）—— 从它的既有仓装
+★★ **本仓（`dsh-omc`）= 【OMC 公司套件】** —— 只有三样：
+   · `packages/teamkit`    —— **公司层本体**（角色档 / 技能 / 组织层 / 指南）
+   · `packages/org-panel`  —— **看得见公司**（侧边栏「办公室」）
+   · `docs/company/`       —— **怎么开公司**（方法论 · 先读 `INDEX.md`）
+⇒ ★ 一个仓，因为**它们是【一个产品】**。
+⇒ ★★ **而"装"与"属于"是两件事** —— `install.sh` 内部还会装【两个依赖】，
+   而**它们不在本仓**（**各有自己的仓**）：
+   · **`dsh-super-injector`**（运行时注入器 —— **服务所有插件**，不只公司）
+   · **`dsh-engram-relay`**（记忆图谱 —— **通用记忆层**）
+   ⇒ ★ 它们**不属于 OMC**（委托方 2026-09-18 定向：
+     「**我没让你把仓库合并，我让你做的是把【公司相关的】合并 omc**」）
+     ⇒ 而**用户仍只敲一条命令**（本脚本内部把它们一并装）✅
+   ⇒ 类比：`npm install express` 时，express 的源码不在你的仓里，**但你只敲了 `npm install`**。
 ```
-> ★ **为什么不把它们也放进来**：**"一个仓" ≠ "一条命令"**。
-> 你要的是**敲一条命令装完** —— 而 **`install.sh` 内部装 11 项**（9 个包 + 2 个依赖）。
-> ⇒ 类比：`npm install express` 时，express 的源码不在你的仓里，**但你只敲了 `npm install`**。
 
 ---
 
@@ -28,12 +29,15 @@
 ```
 · **公司层**（`packages/teamkit`）—— 角色档 · 方法技能 · 组织层（`RULES.yml` / `TALENTS.yml`）· 建造指南
 · **看得见**（`packages/org-panel`）—— 侧边栏里的"办公室"：谁在工位、谁在开会
-· **运行时注入**（`packages/super-injector`）—— DSH 生态的 BepInEx：运行时注入插件 + 热重载
-· **记忆图谱**（`packages/engram-relay`）—— 跨会话记忆（engram）
-· **自带工具**（5 个）—— 输出护栏 · issue 监视 · 模型适配 · 网页工具 · 共生体盘档
 · **要读的文档**（`docs/company/`）—— 为什么这么设计 · 怎么开 · 怎么运营 · 怎么复盘 · 判据全集
 ```
-**⇒ 一个仓，因为它们是【一个产品】**（不是 8 个零件）。
+**⇒ 一个仓，因为它们是【一个产品】**（**不是一堆零件**）。
+
+> ★ **其余那几件也在各自的仓里**（**它们不属于 OMC**）：
+> · `model-fit` + `symbiote` ⇒ **[`dsh-model-optimum`](https://github.com/yjh051108/dsh-model-optimum)**
+>   （**"模型单步执行最优"那一套**）
+> · `tool-output-guard` · `issue-watch` · `web-tools` ⇒ **各自独立的仓**
+> ⇒ ★ 而**注入器与记忆层**是**依赖** ⇒ 由 `install.sh` 自动装（见 §〇）。
 
 ---
 
@@ -48,13 +52,14 @@ cd dsh-omc
 它内部做的事（**你只敲上面那一条流程**）：
 ```
 [0/5] 环境预检（node / dsh 在不在）
-[1/5] 逐包装配 packages/ 下的 9 个插件包（**幂等**，可重跑）
+[1/5] 逐包装配本仓 packages/ 下的公司包（**2 个**：teamkit · org-panel · 幂等可重跑）
 [2/5] 两个依赖（super-injector · engram-relay）—— **拿不到会明说"缺哪个能力"**（不静默跳过）
-[3/5] 公司层资产 → $DSH_HOME/teamkit（角色档 / 技能 / 组织层 / 指南）
-[4/5] 自检（--check）
+[3/5] ★ 自检：**装到 profile 里的**注入器含 R1–R7 兜底吗（**#1 痛点的机械判据**）
+[4/5] 公司层资产 → $DSH_HOME/teamkit（角色档 / 技能 / 组织层 / 指南）
 [5/5] 汇总：**装了 N 个 · 跳过 · 失败 · 下一步**（一张表）
 ```
-**可选参数**：`PROFILE=myco ./install.sh`（装到别的 profile）· `DRY_RUN=1 ./install.sh`（只看不装）
+**可选参数**：`PROFILE=myco ./install.sh`（装到别的 profile）· `DRY_RUN=1 ./install.sh`（只看不装）·
+`SKIP_DEPS=1 ./install.sh`（只装本仓 · 不装两个依赖）
 
 > ⚠️ **装多个包不等于要多敲命令** —— 用户的负担是"敲几条"，不是"装几个"。
 
@@ -81,12 +86,9 @@ cd dsh-omc
 ### 档 2：某个包装上了，但"没反应"
 ```
 ⇒ ★★ **先看它有没有 `dsh.bundle` 声明**：
-   · **有**（`teamkit` · `org-panel` · `super-injector` · `engram-relay` ·
-     `tool-output-guard` · `web-tools`）⇒ **官方装配路径有效**，装上就生效
-   · **没有**（`issue-watch` · `model-fit` · `symbiote`）⇒
-     ★ **走"装配成 bundle"不会激活**（**不是报错，是不生效**）⇒ 请走**注入**路径：
-     `dev_inject_plugin <该包目录>`（需环境里常驻注入器 ⇒ **而 `super-injector` 已随本套装装好**）
-   · ★★ **而有 `dsh.client` 的（`org-panel` · `super-injector` · `engram-relay`）
+   · **本仓两个都有**（`teamkit` · `org-panel`）⇒ **官方装配路径有效**，装上就生效
+   · ★★ **两个依赖也有**（`super-injector` · `engram-relay`）⇒ 同上
+   · ★★ **有 `dsh.client` 的（`org-panel` · `super-injector` · `engram-relay`）
      ⇒ 它们是【客户端插件】⇒ 装完必须【刷新页面】**（见 §三②）
 ```
 ### 档 3：`packages/<包>/lib/` 不存在
@@ -105,25 +107,21 @@ cd dsh-omc
 ```
 dsh-omc/
   README.md          ← 你正在读的（装什么 · 一条命令 · 装不上怎么办）
+  VERSION            ← 版本号（`0.1.0-beta.1` · tag 与 release 标题与它一致）
   LICENSE            ← ★ 根：各包许可证不同 ⇒ 以各包 `package.json` 为准（文件里列了表）
   install.sh         ← 一键安装（Linux/macOS）
   install.ps1        ← 一键安装（Windows）
-  packages/          ← ★ **要装的包**（每个都有 `package.json`）
-    teamkit/                公司层本体
+  packages/          ← ★ **公司包**（本仓只有 2 个）
+    teamkit/                公司层本体（角色档 / 技能 / 组织层 / 指南）
     org-panel/              侧边栏"办公室"（`dsh.client` ⇒ **要刷新页面**）
-    super-injector/         运行时注入器（dev_* 工具全家桶 + 热重载）
-    engram-relay/           记忆图谱（engram · 跨会话记忆）
-    tool-output-guard/      工具输出护栏
-    issue-watch/            issue 监视
-    model-fit/              模型适配
-    web-tools/              网页工具
-    symbiote/               共生体盘档
   docs/
-    company/         ← ★ **要读的文档**（16 份 · **先读 `INDEX.md`** —— 有"先读顺序"）
+    company/         ← ★ **要读的文档**（**先读 `INDEX.md`** —— 有"先读顺序"）
 ```
 > ★★ **为什么 `docs/company/` 不在 `packages/` 里**：**`packages/` 的语义是"要装的包"**，
 > 而它是**给人读的 Markdown**（**没有 `package.json`**）⇒ 放进去会误导读的人。
 > ⇒ 这正是本项目的"**仓 ≠ 包**"：**同一棵树里，既有"要装的包"，也有"要读的文档"**。
+>
+> ★ **两个依赖**（`super-injector` · `engram-relay`）**不在本仓** ⇒ 由 `install.sh` 从**它们各自的仓**装。
 
 ### 5.1 ★ 每个包里有什么（**源码 + 产物都在**）
 ```
@@ -138,9 +136,21 @@ dsh-omc/
 ## 六 · 许可证 · 边界
 
 ```
-· ★ LICENSE：**根放一个说明 + 表**（因为各包不同：6 个 BSD-3-Clause · `web-tools` 是 Apache-2.0）
+· ★ LICENSE：**根放一个说明 + 表**（本仓 2 个包都是 **BSD-3-Clause**）
   ⇒ **以各包 `package.json` 的 `license` 字段为准**（各自 `LICENSE` 文件也在各包里）
+  ⇒ ★★ **两个依赖的许可证在它们各自的仓**（`dsh-super-injector` · `dsh-engram-relay`）
 · ⛔ 本套装**不改** DSH 本体 —— 只用官方的 `dsh plugin add` 与注入端口
 · ⛔ 本套装**不碰**会话日志 / 投影缓存 / profile 私有格式
 ```
+
+---
+
+## 七 · 这一版（`0.1.0-beta.1`）修了什么
+
+> ★ 详见 [`RELEASE-NOTES`](docs/company/RELEASE-NOTES-v0.1.0-beta.1.md)（**逐条带读数**）：
+> · ★★ **宿主崩溃循环**（委托方 #1 痛点）⇒ `unhandledRejection` **常驻兜底**（`self-heal.log` 里 `rejection-shield` **×43**）
+> · ★ **`.sh` 的 shebang 被 BOM 弄坏**（**Linux/macOS 完全装不上**）⇒ 已修（第 1 字节 = `#`）
+> · ★★ **侧边栏不随会话切换** ⇒ 修 `client.js` + `bridge.js`（`office.js` 一字节未动）
+> · ★★ **仓的边界**：**本仓只放"公司相关"**（其余在各自的仓）
+
 
