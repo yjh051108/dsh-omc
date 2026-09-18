@@ -62,7 +62,7 @@
     "@deepseek-ai/dsh-tools": {
       "optional": true
     },
-    "cordis": {
+    "@deepseek-ai/cordis": {
       "optional": true
     }
   },

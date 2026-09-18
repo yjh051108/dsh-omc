@@ -63,8 +63,8 @@ Info '[2/5] 依赖（**不在本仓** —— 从它们各自的【Release 资产
 #   远程 tgz URL => FAIL（pnpm 走网络 TLS 错）
 #   本地 tgz  => exit=0  <= 所以先下载到临时目录、再 add 本地文件
 $depAssets = @(
-  @{ Name = 'dsh-super-injector'; Url = 'https://github.com/yjh051108/dsh-super-injector/releases/download/v0.3.4/dsh-external-dsh-super-injector-0.3.4.tgz'; Why = '运行时注入（dev_* 工具全家桶）—— 缺它则【注入】能力不可用' },
-  @{ Name = 'dsh-engram-relay';   Url = 'https://github.com/yjh051108/dsh-engram-relay/releases/download/v0.4.1/dsh-external-dsh-engram-relay-0.4.1.tgz';   Why = '记忆图谱（engram）—— 缺它则【跨会话记忆】不可用' }
+  @{ Name = 'dsh-super-injector'; Url = 'https://github.com/yjh051108/dsh-super-injector/releases/download/v0.3.5/dsh-external-dsh-super-injector-0.3.5.tgz'; Why = '运行时注入（dev_* 工具全家桶）—— 缺它则【注入】能力不可用' },
+  @{ Name = 'dsh-engram-relay';   Url = 'https://github.com/yjh051108/dsh-engram-relay/releases/download/v0.4.2/dsh-external-dsh-engram-relay-0.4.2.tgz';   Why = '记忆图谱（engram）—— 缺它则【跨会话记忆】不可用' }
 )
 $depTmp = Join-Path ([System.IO.Path]::GetTempPath()) ("dsh-omc-deps-" + [guid]::NewGuid().ToString('N').Substring(0,8))
 New-Item -ItemType Directory -Path $depTmp -Force | Out-Null

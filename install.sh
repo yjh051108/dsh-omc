@@ -128,8 +128,8 @@ info '[2/5] 依赖（**不在本仓** —— 从它们各自的【Release 资产
 # ⚠️ 拿不到时要【明说】（不是静默跳过）—— "没装"与"装了但坏了"必须能分辨（`B51`）
 # 形态：`<名字>|<Release tgz 的 URL>|<它提供的能力>`
 DEP_ASSETS=(
-  "dsh-super-injector|https://github.com/yjh051108/dsh-super-injector/releases/download/v0.3.4/dsh-external-dsh-super-injector-0.3.4.tgz|运行时注入（dev_* 工具全家桶）—— 缺它则【注入】能力不可用"
-  "dsh-engram-relay|https://github.com/yjh051108/dsh-engram-relay/releases/download/v0.4.1/dsh-external-dsh-engram-relay-0.4.1.tgz|记忆图谱（engram）—— 缺它则【跨会话记忆】不可用"
+  "dsh-super-injector|https://github.com/yjh051108/dsh-super-injector/releases/download/v0.3.5/dsh-external-dsh-super-injector-0.3.5.tgz|运行时注入（dev_* 工具全家桶）—— 缺它则【注入】能力不可用"
+  "dsh-engram-relay|https://github.com/yjh051108/dsh-engram-relay/releases/download/v0.4.2/dsh-external-dsh-engram-relay-0.4.2.tgz|记忆图谱（engram）—— 缺它则【跨会话记忆】不可用"
 )
 DEP_TMP="$(mktemp -d 2>/dev/null || echo "${TMPDIR:-/tmp}/dsh-omc-deps.$$")"
 mkdir -p "$DEP_TMP"
