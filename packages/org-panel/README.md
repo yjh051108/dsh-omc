@@ -4,18 +4,38 @@ DSH 右侧栏里的一个 tab，把**一个 Agent Team 当一家公司**画出�
 employee = **Agent Team 的 teammate**（不是所有子代理）；**一个会话一个公司**；
 点得开板 / 规则 / 项目 / 会议室；开会时成员会**走到**会议室。
 
-## ⚠️ 装之前先看：你需要一个**完整 profile**（否则会以为这插件坏了）
+## ⚠️ 装之前先看：**本插件是 OMC 套件的一部分**
+
+★ **不要单独装本包** —— 它是 **`dsh-omc` 套件**（公司层 + 侧边栏 + 运行时注入器 + 记忆层 + 自带工具）
+里的**一格**。正确装法（**一条命令装齐 9 个包**）：
 
 ```bash
-# ① 建一个完整 profile（★ 必须带 --from-default-profile web，见下）
+git clone https://github.com/yjh051108/dsh-omc
+cd dsh-omc
+./install.sh          # Windows: .\install.ps1
+#   可选：PROFILE=myco ./install.sh   ·   先干跑看要做什么：DRY_RUN=1 ./install.sh
+```
+
+> ⚠️ **旧的 `dsh-org-panel` 仓已归档**（2026-09-18 并入 `dsh-omc`）⇒ **别再指向它**
+> —— 那里是**只读的旧版**（你照样能装上，但**拿到的是修前的代码，而且看不出区别**）。
+
+### 若你只想单独装本包（**不推荐**，但可行）
+
+```bash
+# ① ★ 先建一个**完整 profile** —— `install.sh` 不管这一步，而缺了它面板会起不来
 dsh --profile myco --from-default-profile web
 
-# ② 再把面板装进去（★ 必须用 GitHub 地址 —— 本包【不在 npm registry 上】）
-dsh plugin --profile myco add "https://github.com/yjh051108/dsh-org-panel"
+# ② 再把面板装进去（★ 用你 clone 下来的 dsh-omc 里的子目录 —— 本包【不在 npm registry 上】）
+dsh plugin --profile myco add "<你 clone 的 dsh-omc>/packages/org-panel"
 
 # ③ 起它 —— 侧边栏会出现「办公室」
 dsh --profile myco --port 3099 --no-open
 ```
+
+> ★ **为什么单独装需要第 ① 步**：面板 `inject = ['webServer']`，而 `webServer` 由
+> `@deepseek-ai/dsh-web-app` 提供 —— 裸 profile 里没有它，插件会一直 `pending`。
+> **`install.sh` 装到默认 profile `web`（那里已经有 `dsh-web-app`）⇒ 它不需要你操心这一步**；
+> 而你若是**自带一个别名的 profile** ⇒ 得自己先把它建完整。
 
 > ★★ **装完（或在已开着的窗口里装上）要【刷新一次页面】** —— 本插件有 client 半，
 > 它是在页面装载时注册 tab 的；**已经开着的页面看不到它**（`dsh` 会把它写进下次装载的 boot 清单）。
@@ -39,7 +59,7 @@ dsh --profile myco --port 3099 --no-open
 **不加这一步会怎样**（这是最容易踩的坑）：
 
 ```
-$ dsh plugin --profile myco add "https://github.com/yjh051108/dsh-org-panel"   # 装是装上了
+$ dsh plugin --profile myco add "https://github.com/yjh051108/dsh-org-panel"   # 装是装上了（★ 该仓已归档，见最前面）
 $ dsh --profile myco
 Error: dsh: plugin tree failed to load: dsh: 1 entry did not activate
 @dsh-external/dsh-org-panel: pending (waiting for service: webServer)
@@ -61,8 +81,10 @@ Error: dsh: plugin tree failed to load: dsh: 1 entry did not activate
 ① 第②步 `dsh plugin add` 就失败
    · `404` / `Not found` / `ERR_PNPM_FETCH_404`
      ⇒ 你多半写成了裸包名（`@dsh-external/dsh-org-panel`）。
-       ★ 本包【不在 npm registry 上】⇒ 必须写 **GitHub 地址**：
-       `dsh plugin --profile <p> add "https://github.com/yjh051108/dsh-org-panel"`
+       ★ 本包【不在 npm registry 上】⇒ 必须写 **GitHub 地址**。
+       ⚠️ **但正解是别单独装** —— 走 `dsh-omc` 的 `install.sh`（见本文最前面）；
+          而要单独装 ⇒ 用 `dsh plugin --profile <p> add "<你 clone 的 dsh-omc>/packages/org-panel"`
+          （★ **推荐本地目录形态**：旧仓 `dsh-org-panel` **已归档**，那里是只读旧版）
    · `'pnpm' is not recognized`
      ⇒ **缺 pnpm 前置**（`dsh plugin` 把它转发给 profile 目录下的 pnpm）。
        ⇒ 装 pnpm 并确保它在 `PATH` 上。
