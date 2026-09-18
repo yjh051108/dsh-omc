@@ -3429,40 +3429,47 @@ const roles = await import('../lib/roles.js')
       hasExit ? '有 process.exit(code) ✓' : '**--check 不设退出码**')
   }
 
-  // ── H40 · ★★★ **"双份安装"是有意设计，不许被当成重复而删掉**（Round 85）──────────
-  // 【我为什么去查】装完后机器上**同时**有两份 7 条技能，看起来像 bug（上轮就在此停了半拍）。
-  //   逐条取证后**结论是"两份都必须装"**：
+  // ── H40 · ★★★ **两种模式（`--locked` / `--global`）都要在**（`B180` · 2026-09-19 重写）──────
+  // 【本断言的前身（Round 85）】它当时要求"**安装器两处都写**"（公共根 + 上游根）
+  //   ⇒ ★★ **而那条设计【被委托方否掉了】**（他原话）：
+  //     「**本地不要更新锁定预设。……我在标准模式导致你现在没法像 omc 一样自动注入 skill，
+  //      这样子你现在的公司就完蛋了。我们传的 release 包是锁定预设的，但是我们本地的不要这样。**」
+  //   ⇒ ★★★ **即：要【分离两件事】** ——
+  //     · **release / 陌生人** ⇒ **`--locked`**（只装上游根 ⇒ **别的预设读不到**）
+  //     · **本地 / 我们** ⇒ **`--global`**（公共根也装 ⇒ **公司才跑得起来**）
+  // 【★ 而旧断言的危险】它要求"两处都写" ⇒ **它会把正确的 `--locked` 判成坏** ❌
+  //   ⇒ ★★ **所以本条改成：两种模式【都存在且各自可预测】**（**而不是"强制同时装两处"**）
   // ```
-  //   装法 A｜用 `omc` 预设      ⇒ 模型读 `teamkit/skills-upstream`（`customSkillDirs` 指它，
-  //                               且 `includeDefaultRoots:false` ⇒ 明确不扫 `$DSH_HOME/skills`）
-  //   装法 B｜只 `dsh plugin add` ⇒ `upstream.root` 默认 = `$DSH_HOME/skills`，
-  //                               且 `dsh-base` 的全局 `skill-filesystem` 也扫它 ⇒ **那份就是模型读的**
+  // 【判据（三条，都是结构级的）】
+  //   ① 安装器里有 `--global` 与 `--locked` 两个开关（**且 `--locked` 是默认**）
+  //   ② **落点清单随模式变**：`--global` ⇒ 两个根 · `--locked` ⇒ 只有上游根
+  //   ③ **`--locked` 要清掉公共根里旧版遗留**（**否则泄漏源还在**）
+  // ⚠️ **为什么用结构断言而不用"跑一遍看结果"**：`selftest` 是**离线自证**，
+  //   而"跑安装器"会**写 `$DSH_HOME`**（那是真机状态）⇒ 只能静态检查源码结构
+  //   ⇒ 而**动态那半**由 `plugin/scripts/e2e-tarball.mjs` 在**沙箱**里做（它断言公共根里没有 `teamkit*`）
   // ```
-  //   ⇒ 安装器**无法事先知道用户会用哪种** ⇒ **两个都装**。
-  //   **缺任一份 ⇒ 有一种装法下模型读不到技能**（R47 那一族）。
-  // 【判据】① 安装器**必须两处都写**（`SKILLS_DST` 与 `UPSTREAM_DST` 的循环都在）；
-  //   ② 且**必须写明为什么**（"兼容两种装法"）—— 否则下一个人（或下一轮的我）
-  //     会把它当"重复劳动"删掉，**删掉就是 R47 复发**。
   {
     let inst = ''
     try { inst = readFileSync(join(PLUGIN_DIR, '..', 'tools', 'install-teamkit.mjs'), 'utf8') } catch { inst = '' }
-    // ⚠️ **判据要精确到"安装那一段"，不是"任何出现 SKILLS_DST 的地方"**。
-    //   我第一版写成 `join\(SKILLS_DST, d\)` ⇒ **卸载那段也有 `const p = join(SKILLS_DST, d)`**
-    //   ⇒ 变异（把安装段的 `dstDir` 改掉）**没判死**（同族：R79"抽得太少"、R66"变异太弱"）。
-    //   ⇒ 精确串：安装段用的是 `const dstDir = join(<ROOT>, d)`（卸载段用的是 `const p = ...`）。
-    const writesSkillsRoot = /const dstDir = join\(SKILLS_DST, d\)/.test(inst)
-    const writesUpstreamRoot = /const dstDir = join\(UPSTREAM_DST, d\)/.test(inst)
-    const writesBoth =
-      /const SKILLS_DST = join\(DSH_HOME, 'skills'\)/.test(inst) && /const UPSTREAM_DST = /.test(inst) && writesSkillsRoot && writesUpstreamRoot
-    CHECK('H40', writesBoth,
-      '★★★ **安装器把 7 条技能同时写进两个根**（`$DSH_HOME/skills` 与 `teamkit/skills-upstream`）',
-      '**两种装法各读一个根**：预设装法读 `skills-upstream`；bundle 装法读 `$DSH_HOME/skills`（也是全局扫的那个）⇒ 缺一份就有一种装法读不到',
-      writesBoth ? '两处都写 ✓' : '**少写了一处** ⇒ 有一种装法会读不到技能')
-    const explains = /兼容两种装法|两种装法要的落点不同/.test(inst)
-    CHECK('H40', explains,
-      '★★ 且**源码里写明了"为什么两份都要装"**（防止被当重复删掉）',
-      '不写明 ⇒ 下一个人会当"重复劳动"删掉其中一份 ⇒ **删掉就是 R47 复发**（模型读不到技能、且无报错）',
-      explains ? '写明了 ✓' : '**没写明理由**（易被当重复删掉）')
+    const hasBothFlags = /process\.argv\.includes\('--global'\)/.test(inst) && /process\.argv\.includes\('--locked'\)/.test(inst)
+    // ★ **默认必须是 locked**（`--locked` 或 `!globalMode`）
+    const lockedByDefault = /process\.argv\.includes\('--locked'\)\s*\|\|\s*!globalMode/.test(inst)
+    // ★ **落点随模式变**（`SKILL_ROOTS` 那一行）
+    const modeDependentRoots = /const SKILL_ROOTS = globalMode \? \[UPSTREAM_DST, SKILLS_DST\] : \[UPSTREAM_DST\]/.test(inst)
+    // ★ **locked 模式要清公共根遗留**
+    const cleansLegacy = /if \(lockedMode && !check\)/.test(inst)
+    CHECK('H40', hasBothFlags && lockedByDefault,
+      '★★★ **安装器有 `--locked`（默认）与 `--global` 两种模式**',
+      '缺 ⇒ **只有一种行为** ⇒ 而委托方要的是"**release 锁 / 本地不锁**"两件事（`B180`）⇒ 混在一起必然弄坏一边',
+      hasBothFlags && lockedByDefault ? '两模式齐 · locked 是默认 ✓' : `hasBothFlags=${hasBothFlags} lockedByDefault=${lockedByDefault}`)
+    CHECK('H40', modeDependentRoots,
+      '★★ **技能落点随模式变**（`--global` 两个根 · `--locked` 只有上游根）',
+      '落点写死 ⇒ **两模式形同虚设** ⇒ 而 `--locked` 的意义正是"**别的预设读不到**"',
+      modeDependentRoots ? '随模式变 ✓' : '**落点没随模式变**')
+    CHECK('H40', cleansLegacy,
+      '★★ **`--locked` 会清掉公共技能根里旧版遗留**（光"不装"不够 —— 遗留仍在就是泄漏源）',
+      '不清 ⇒ 旧版装过的那 7 条**还在公共根** ⇒ **别的预设照样读到** ⇒ 委托方报的症状不消失',
+      cleansLegacy ? '会清 ✓' : '**没清遗留**')
   }
 
   // ── H41 · ★★★ **技能里不许把"协议"说成"机制"**（2026-09-14 / Round 86）────────────
