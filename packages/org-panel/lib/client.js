@@ -16,11 +16,48 @@ window.__ModuleLoader__.load({
 
     var TAB_ID = '@dsh-external/dsh-org-panel'
     var TAB_KIND = 'org-office'
+    // ★★ 2026-09-18（B163 修）：**切会话时面板要跟着切**。
+    //   症状（委托方亲自报）：侧边栏切到另一个会话 ⇒ 面板【还停在上一个公司】。
+    //   根因（取证结论，两条读数）：
+    //     ① `src` 原先是**恒定字符串**（不含会话）⇒ 切会话时 iframe 不重载 ⇒ 画面不动；
+    //     ② 而 iframe 里 `bridge.js:104-125` 的 `readCurrentSession()` 有**四级回退**，
+    //        四级全部依赖"宿主 URL 里带 `?session=`"——**而 DSH 是 SPA，切会话时 URL 不变**
+    //        ⇒ 四级全落空 ⇒ 它退到"公司列表第一个"⇒ 面板停住。
+    //   修法（甲-1）：把**当前会话 id** 放进 iframe 的 `src` 查询串 ⇒ 切会话 ⇒ `src` 变 ⇒ 重载。
+    //   ⚠️ 用什么参数：**`?company=` 而不是 `?session=`** —— 依据是实测：
+    //     · `?company=<rootId>` ⇒ 正常（total=23）
+    //     · `?session=<rootId>` ⇒ **空**（快路零 IO，无法做 session→company 解析，见 `lib/index.js:910-918`）
+    //     · 而 DSH 的 **sessionId 恰好就是 company.id**（`session-fa986645-…`）
+    //   代价（已由 CEO 裁定接受）：重载 ⇒ 办公室地图会闪一下；**闪远好于不切**。
     var OFFICE_URL = '/@dsh-external/dsh-org-panel/office/index.html'
 
-    function OfficePane() {
+    // 拿"当前会话 id"：**只从可靠来源取**，取不到就退回原行为（不带参数 ⇒ 与修前一致，不倒退）。
+    //   ★ 来源①：`ctx.sidebarRight` 若暴露了当前绑定/会话（不同 DSH 版本可能不同 ⇒ 一律做 typeof 检查）
+    //   ★ 来源②：宿主 URL 的 `?session=`（DSH 会话入口形态 `/?session=<id>`）
+    //   ⚠️ 两条都拿不到 ⇒ **返回 ''** ⇒ 行为与修前完全一致（**不猜、不编**）。
+    function currentSessionId(ctx) {
+      try {
+        var b = ctx && ctx.sidebarRight && (ctx.sidebarRight.binding || ctx.sidebarRight.current)
+        if (b) {
+          var v = b.sessionId || b.key || (b.session && b.session.id)
+          if (typeof v === 'string' && v) return v
+        }
+      } catch (e) { obs.sessionFrom = 'sidebarRight:' + (e && e.message) }
+      try {
+        var m = String(window.location.search || '').match(/[?&]session=([^&#]+)/)
+        if (m) { obs.sessionFrom = 'location'; return decodeURIComponent(m[1]) }
+      } catch (e2) { obs.sessionFrom = 'location:' + (e2 && e2.message) }
+      obs.sessionFrom = 'none'
+      return ''
+    }
+
+    function OfficePane(props) {
+      // ★ 会话 id 变了 ⇒ 这个字符串变 ⇒ React 换 iframe ⇒ 重载到新公司
+      var sid = ''
+      try { if (props && typeof props.__orgPanelSessionId === 'string') sid = props.__orgPanelSessionId } catch (e) {}
+      var src = sid ? OFFICE_URL + '?company=' + encodeURIComponent(sid) : OFFICE_URL
       return createElement('iframe', {
-        src: OFFICE_URL,
+        src: src,
         title: '办公室',
         style: {
           width: '100%',
@@ -75,7 +112,18 @@ window.__ModuleLoader__.load({
       }, 'org-panel:tab-type')
 
       ctx.effect(() => {
-        const body = (props) => createElement(OfficePane, props)
+        // ★ B163：body 每渲染一次读一次"当前会话"，把它作为 `key` 与 `src` 的来源。
+        //   为什么用 `key`：React 对**不同 key** 的同一组件会**卸载+重建** ⇒ iframe 一定重载
+        //   （只改 `src` 属性在某些浏览器里不会可靠地重载 iframe）。
+        const body = (props) => {
+          const sid = currentSessionId(ctx)
+          obs.sessionId = sid
+          // ⚠️ 用包装组件的 `key` 强制重建；`sid` 为空时 key 固定 ⇒ 行为与修前一致
+          const pane = createElement(OfficePane, Object.assign({}, props, { __orgPanelSessionId: sid }))
+          return sid
+            ? createElement('div', { key: sid, style: { width: '100%', height: '100%' } }, pane)
+            : pane
+        }
         const d = (typeof ctx.slots.inject === 'function')
           ? ctx.slots.inject('sidebar.right.pane.tab', () =>
             ctx.slots.register({ name: 'sidebar.right.pane.tab', key: TAB_ID }, body))
