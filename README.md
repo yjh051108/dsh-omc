@@ -147,11 +147,10 @@ dsh-omc/
 
 ## 七 · 这一版（`0.1.0-beta.1`）修了什么
 
-> ★ 逐条带读数：
+> ★ 逐条带读数 → [`docs/company/RELEASE-NOTES-v0.1.0-beta.1.md`](docs/company/RELEASE-NOTES-v0.1.0-beta.1.md)：
 > · ★★ **宿主崩溃循环**（委托方 #1 痛点）⇒ `unhandledRejection` **常驻兜底**（`self-heal.log` 里 `rejection-shield` **×43**）
 > · ★ **`.sh` 的 shebang 被 BOM 弄坏**（**Linux/macOS 完全装不上**）⇒ 已修（第 1 字节 = `#`）
 > · ★★ **侧边栏不随会话切换** ⇒ 修 `client.js` + `bridge.js`（`office.js` 一字节未动）
-> · ★★ **仓的边界**：**本仓只放"公司相关"**（其余在各自的仓）
-> · ★★ **`install.sh` 的安装器自检**：核【装到 profile 里的】注入器含不含 R1–R7 兜底
+> · ★★ **边界收敛**：**本仓只放"公司相关"**（其余在各自的仓）· 装法 = **本仓 2 包 + 2 依赖**
 
 
