@@ -50,7 +50,7 @@
     "@deepseek-ai/dsh-skill": ">=0.0.1-rc <2",
     "@deepseek-ai/dsh-agent": ">=0.0.1-rc <2",
     "@deepseek-ai/dsh-tools": ">=0.0.1-rc <2",
-    "cordis": ">=4.0.0-rc <5"
+    "@deepseek-ai/cordis": ">=4.0.0-rc <5"
   },
   "peerDependenciesMeta": {
     "@deepseek-ai/dsh-skill": {
