@@ -102,12 +102,20 @@
   // 但 iframe 与宿主**同源**，所以读 `window.parent.location.search`（DSH 的会话入口是
   // `/?session=<id>`，判据脚本 `org-panel-check.mjs` 就是这么进的）。逐级回退，全拿不到就走"公司列表第一个"。
   function readCurrentSession() {
-    var from = function (href) {
+    var m1 = function (href, key) {
       try {
-        var m = String(href || '').match(/[?&]session=([^&#]+)/)
+        var m = String(href || '').match(new RegExp('[?&]' + key + '=([^&#]+)'))
         return m ? decodeURIComponent(m[1]) : ''
       } catch (e) { return '' }
     }
+    // ★★ B163（2026-09-18）：**`?company=<sessionId>` 优先** ——
+    //   这是 `client.js`（宿主侧）能拿到的【唯一可靠】通道：它把**当前会话 id** 放进 iframe 的 src。
+    //   ⚠️ 为什么不用 `?session=`：**DSH 是 SPA，切会话时宿主 URL 不带 `?session=`**
+    //     （实测：URL 恒为 `/`，`?session=` 被丢弃）⇒ 那个四级回退**全部落空** ⇒ 退到"列表第一个"。
+    //   而 client.js 从 `ctx.sidebarRight.binding` 能拿到**真实 sessionId** ⇒ 经 src 传进来。
+    var ownCompany = m1(window.location.search, 'company')
+    if (ownCompany) return ownCompany
+    var from = function (href) { return m1(href, 'session') }
     var own = from(window.location.search)
     if (own) return own
     try {
@@ -530,7 +538,15 @@
   function body(html) { if (mBody) mBody.innerHTML = html }
 
   var q = function (extra) {
-    var s = '?company=' + encodeURIComponent(resolvedCompany || '')
+    // ★★ B163：**company 的取值优先级**（这是"切会话时面板跟着切"的落点）：
+    //   ① 用户手选的公司（`chosenCompany`，非空时优先 —— 尊重手动选择）
+    //   ② ★ **当前会话**（`obs.currentSession`）—— 修前这里只用 `resolvedCompany`，
+    //      而 `resolvedCompany` 要等**首拍回来**（`:1123` 由 `st.company.id` 赋）才有值
+    //      ⇒ 首拍必然打 `?company=`（空）⇒ 后端退回"列表第一个"⇒ **面板停在上一个公司**。
+    //   ⚠️ 为什么用 `?company=` 传会话：后端**慢路**里 `pickCompany(companies, wantCompany, wantSession)`
+    //      能按 session 解析（`lib/index.js:300-306`），而**快路**不 collectCompanies ⇒ `?session=` 拿不到。
+    var comp = chosenCompany || resolvedCompany || obs.currentSession || ''
+    var s = '?company=' + encodeURIComponent(comp)
     if (chosenCompany === '' && obs.currentSession) s += '&session=' + encodeURIComponent(obs.currentSession)
     return s + (extra || '')
   }
