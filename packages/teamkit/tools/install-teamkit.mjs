@@ -80,29 +80,33 @@ const ROLES_SRC = pickSrc('roles', 'engineer.json', [join(PKG, 'runs', '005-role
 //   插件包与仓里都没有 ⇒ **开源用户拿不到入口**。
 const PRESETS_SRC = pickSrc('presets', 'omc/agent.cordis.yml', [join(PKG, 'presets'), join(PKG, 'assets', 'presets')])
 const DSH_HOME = process.env.DSH_HOME || join(homedir(), '.dsh')
-const SKILLS_DST = join(DSH_HOME, 'skills')
-// ★★ **`$DSH_HOME/skills` 与 `teamkit/skills-upstream` 是"两种装法各自要读"的那份** ——
-//   **两份都要装**，这不是重复劳动（2026-09-14 / Round 85 查清并写明）。
-//
-// 【我为什么去查】装完机器上**同时**有两份 7 条技能，看起来像 bug（我上轮就在此停了半拍）。逐条取证：
+// ⚠️ **`SKILLS_DST` 曾经是 `$DSH_HOME/skills`（公共技能根）—— 2026-09-19 起【不再装那份】**（`B178`）
+// ★★★ **为什么改**（委托方亲手报的）：
 // ```
-//   装法 A｜**`omc` 预设**（本安装器会装预设）：
-//     模型读 `teamkit/skills-upstream`（预设 `customSkillDirs` 指它，
-//     且 `includeDefaultRoots:false` ⇒ **明确不扫** `$DSH_HOME/skills`）
-//     ⇒ `$DSH_HOME/skills` 那份对它**零作用**
-//   装法 B｜**只 `dsh plugin add`（bundle 装法，不选预设）**：
-//     `upstream.root` 默认 = `$DSH_HOME/skills`（`config.js`：`raw.upstream?.root || join(dshHome,'skills')`）
-//     **且** `dsh-base` 的全局 `skill-filesystem` 扫的也是它
-//     ⇒ `$DSH_HOME/skills` 那份**就是模型读的那份** ⇒ **必须装**
+// 【他原话】「**为什么在其他预设下面也会有你的 team kit？……我看到主要是因为你的 skill
+//   散布到其他的预设里了，导致它（们）有开启子代理的冲动。**」
+// 【★ 而它的因果链成立】`$DSH_HOME/skills` 是**公共技能根**（DSH 本体的**默认根之一**）⇒
+//   任何预设都读得到 ⇒ 而我们那 7 条 skill **真讲"组队/招人/开子代理"**
+//   ⇒ **别的预设的 agent 读了就有"开子代理的冲动"** ❌
 // ```
-//   ⇒ **两种装法要的落点不同**，而安装器**无法事先知道用户会用哪种**
-//     （用户可能先装、后建 `omc` 会话）⇒ **同时装两份是正解**。
-//   ⚠️ 但**两份都写会让用户以为哪里错了** ⇒ **必须说明白**（就是这段）。
-//   ⚠️ 副作用（**已知且可接受**）：`$DSH_HOME/skills` 是**公共技能根** ⇒
-//     用**别的预设**（如 `standard`）的 agent **也会看到这 7 条**。
-//     而这正是 `omc` 预设用 `includeDefaultRoots:false` 想避开的 ——
-//     但"bundle 装法"下**没有别处可放**（那装法要的就是全局可见的效果）。
-//     ⇒ 想"只有 omc 看得见"：**用 `omc` 预设那套装法**（本安装器会装它）。
+// ★★★ **而旧注释里那条"两份都要装"的推理是一条【自我说服链】**（每一环都对、合起来错）：
+// ```
+// ① ★ "用户可能不选 `omc` 预设" ⇒ 那一瞬间它需要 skill ⇒ 所以装到公共根
+//    ⇒ ★★ **而这是个【伪需求】** —— **没选 `omc` 的 agent【本来就不该有公司层 skill】**
+// ② ★★ "`omc` 用 `includeDefaultRoots:false` ⇒ 它不扫公共根 ⇒ 那份对它【零作用】"
+//    ⇒ ★★★ **而这只说了一半**：它对 `omc` 零作用 ✅ · **而它对 `standard` 等【绝对不是零作用】**
+// ③ ★★★ **最要紧的一步**：旧注释写"委托方明令「其它预设不受影响」"——
+//    ⇒ ★★ **而我们把那个"明令"用在了"选 `omc` 时不受影响"上**，
+//      **而他要的是【别的预设不受我们影响】** ❌ ⇒ **一句【单向】约束被理解成了【另一个方向】**
+// ```
+// ★★★ **判据（我据此事记下）**：**"某一处不受影响" ≠ "只有那一处不受影响"** ——
+//   要问的是「**还会影响谁**」。旧注释里"副作用（已知且可接受）"就是**问了但不当回事**。
+// ★★ **而修法不能再走旧链的形态**：**"为了兼容装法 B，所以装两份"** ——
+//   ⇒ **正解：装法 B 下的 agent 本来就不该有公司 skill。那条链不需要公共根那份。**
+//   ⇒ **"上游更新 → 全员自动跟随"那条链【只在 `omc` 下才有意义】**，
+//     而它由 `upstream.root` / `customSkillDirs` **同指 `teamkit/skills-upstream`** 已闭合 ✅
+// ⚠️ **所以本安装器现在只装 `UPSTREAM_DST` 那一份**（且 `omc` 预设的 `includeDefaultRoots:false`
+//   让**别的预设读不到它** ⇒ 隔离成立）。判据见 `tools/check-skill-root-isolation.mjs`。
 const TEAMKIT_DST = join(DSH_HOME, 'teamkit')
 const TALENTS_DST = join(TEAMKIT_DST, 'talents')
 const ROLES_DST = join(TEAMKIT_DST, 'roles')
@@ -114,8 +118,34 @@ const ROLES_DST = join(TEAMKIT_DST, 'roles')
 //   **既保隔离，又让"上游更新 → 全员自动跟随"的链路闭合**（读写同指）。
 const UPSTREAM_DST = join(TEAMKIT_DST, 'skills-upstream')
 const AGENT_PRESETS_DST = join(DSH_HOME, '.agent-presets')
+/** ★★★ **公共技能根**（`B180`：**只有 `--global` 模式才装它**） */
+const SKILLS_DST = join(DSH_HOME, 'skills')
 const check = process.argv.includes('--check')
 const uninstall = process.argv.includes('--uninstall')
+// ★★★ **两种模式：`--locked`（release / 陌生人）与 `--global`（本地 / 我们）**（`B180` · CEO 裁）
+// ```
+// 【委托方原话（他救公司那句）】「**本地不要更新锁定预设。因为你现在……我在标准模式导致你现在
+//   没法像 omc 一样自动注入 skill，这样子你现在的公司就完蛋了。我们传的 release 包是锁定预设的，
+//   但是我们本地的不要这样。**」
+// ⇒ ★★★ **他要的是【分离两件事】**：
+//   · **release 包**（给陌生人）⇒ **锁定**（**只在 `omc` 下** —— 那是他"其它预设不受影响"的明令）✅
+//   · **本地**（他自己用）⇒ **不锁**（**保持全局可用 ⇒ 公司才能跑**）✅
+// 【★ 我先前那条指令为什么错】**我说"移走公共根那份"** ——
+//   **对 release 对 ✅ · 对本地错** ❌ ⇒ ★★ **我把"隔离"当成了【唯一的正解】**，
+//   而**委托方的形态是【两者并存】**。
+//   ⇒ 判据（我记下）：**凡"改全局配置"的指令 ⇒ 必须先问"release 与本地是否要同样处理"**
+//   ⇒ 而它与 `B171`（**用"发布面"当白名单 ⇒ 只做了北极星前半句**）**同族**：
+//     **优化了"给出去的"，弄坏了"我们自己用的"** ❌
+// 【★ 默认值】**`--locked` 是默认** ——
+//   · **release 是给陌生人的**，而"不影响其它预设"是他的**明令** ⇒ **默认必须安全** ✅
+//   · **本地用 `--global`**（**在我们的安装脚本/README 里写明**）✅
+// 【两种模式各写什么】
+//   · `--locked`：`teamkit/skills-upstream` ✅ · 公共根 ❌（**且要清掉旧版遗留**）· 预设 ✅ · **不动 `profile.bundles`**
+//   · `--global`：`teamkit/skills-upstream` ✅ · **公共根 ✅** · 预设 ✅ · **（`profile.bundles` 由 `dsh plugin add` 管，本器不动）**
+// ```
+const globalMode = process.argv.includes('--global')
+const lockedMode = process.argv.includes('--locked') || !globalMode // ★ **默认 locked**
+
 
 // ★★ **`--help`**（2026-09-14 / Round 77 补）。
 //
@@ -131,10 +161,20 @@ if (process.argv.includes('--help') || process.argv.includes('-h')) {
   console.log('用法： node tools/install-teamkit.mjs [开关]')
   console.log('')
   console.log('开关：')
+  console.log('  --locked       ★ **默认**：技能只装 `teamkit/skills-upstream`（**只在 `omc` 预设下可见**）')
+  console.log('                 —— ★ **release / 陌生人用这个**（"不影响其它预设"是委托方的明令）')
+  console.log('  --global       ★ 技能**同时**装进公共技能根 `$DSH_HOME/skills`（**所有预设都能读到**）')
+  console.log('                 —— ★ **本地 / 我们自己用这个**（否则"标准模式"下读不到 ⇒ 公司跑不起来）')
   console.log('  --check        只看状态，**不写盘**（会报"待更新 / 一致 / 缺失 / 读不到"）')
   console.log('  --uninstall    **只删本包装的**（靠 `.teamkit` 标记）—— 用户自己写的 Talent / principles **不动**')
   console.log('  --force        覆盖已存在的同名预设（默认跳过，不冲掉你改过的）')
   console.log('  --help, -h     本页（**不写盘**）')
+  console.log('')
+  console.log('★ 为什么有两种模式（`B180` · 委托方裁定）：')
+  console.log('  · **release 包**（给陌生人）⇒ **锁定** ⇒ 公共技能根里【没有】我们的 skill')
+  console.log('    ⇒ 别的预设的 agent 读不到"组队/招人"那几条 ⇒ **不会莫名有开子代理的冲动**')
+  console.log('  · **本地**（我们自己用）⇒ **不锁** ⇒ 公共技能根里有 ⇒ **在哪都能读到方法包**')
+  console.log('  ⚠️ **`--locked` 是默认**（默认必须安全）· **本地请显式加 `--global`**')
   console.log('')
   console.log('环境变量：')
   console.log('  DSH_HOME       落点根（默认 ~/.dsh）。⚠️ **指向临时目录就能做安全测试**：')
@@ -169,12 +209,35 @@ if (dirs.length === 0) { console.error('找不到 skills 源：' + SKILLS_SRC); 
 
 console.log('teamkit 交接包 · ' + (uninstall ? '卸载' : check ? '只检查' : '安装'))
 console.log('  源 ' + SKILLS_SRC)
-console.log('  落点 ' + SKILLS_DST + '  与  ' + TEAMKIT_DST)
+// ★ **落点只有 `UPSTREAM_DST` 一处了**（`B178`）—— 公共技能根那份**不再装**
+// ★ **落点随模式变**（`B180`）—— ⚠️ 不能写死成"只此一处"（`--global` 下是两处）
+console.log(
+  `  落点 ${UPSTREAM_DST}${globalMode ? ` 与 ${SKILLS_DST}（★ \`--global\`：两处都装 —— **所有预设都读得到**）` : '（★ **`--locked`：只此一处** —— 公共技能根不装）'}`,
+)
+console.log('  与 ' + TEAMKIT_DST)
 
 if (uninstall) {
+  // ★★★ **公共技能根那份也要清**（`B178`）—— 旧版安装器装过它 ⇒ 用户机器上可能还留着
+  // ```
+  // 【为什么卸载要管它】旧版把 7 条装进了 `$DSH_HOME/skills`（**公共根**）⇒
+  //   而它正是委托方报的那个泄漏源 ⇒ ★ **光"新版不装"不够，还得把已经装过的清掉** ✅
+  //   ⚠️ **只删带 `.teamkit` 标记的**（与 install/uninstall 一贯口径一致 —— 不碰用户自己的）
+  // ```
+  let nLegacy = 0
+  const LEGACY_PUBLIC = join(DSH_HOME, 'skills')
+  if (existsSync(LEGACY_PUBLIC)) {
+    for (const d of dirs) {
+      const p = join(LEGACY_PUBLIC, d)
+      if (existsSync(join(p, '.teamkit'))) {
+        rmSync(p, { recursive: true, force: true })
+        nLegacy += 1
+      }
+    }
+    if (nLegacy > 0) console.log(`  ★ 清掉公共技能根里 ${nLegacy} 条（旧版装的 · \`${LEGACY_PUBLIC}\`）`)
+  }
   let n = 0
   for (const d of dirs) {
-    const p = join(SKILLS_DST, d)
+    const p = join(UPSTREAM_DST, d)
     if (existsSync(join(p, '.teamkit'))) { rmSync(p, { recursive: true, force: true }); n += 1 }
   }
   // ★ **talents：只删"有我们标记的"**（2026-09-14 / Round 76 修）。
@@ -230,24 +293,55 @@ const statusOf = (src, dst) => {
 
 let missing = 0
 let unreadable = 0
+/** ★★ **落点清单：`--locked` ⇒ 只有上游根 · `--global` ⇒ 上游根 + 公共技能根**（`B180`） */
+const SKILL_ROOTS = globalMode ? [UPSTREAM_DST, SKILLS_DST] : [UPSTREAM_DST]
+console.log(
+  `  模式：${globalMode ? '★ **`--global`**（本地 —— 技能装进【两个根】，所有预设都读得到）' : '★ **`--locked`**（默认 · release —— 技能【只装 `teamkit/skills-upstream`】，只在 `omc` 预设下可见）'}`,
+)
 for (const d of dirs) {
   const src = join(SKILLS_SRC, d, 'SKILL.md')
-  const dstDir = join(SKILLS_DST, d)
-  const dst = join(dstDir, 'SKILL.md')
-  const st = statusOf(src, dst)
-  if (st.state === 'missing') missing += 1
-  if (st.state === 'unreadable') unreadable += 1
-  const label = st.state === 'same' ? 'OK  ' : st.state === 'unreadable' ? '??  ' : st.state === 'error' ? 'XX  ' : '->  '
-  const note = st.state === 'same' ? '（一致）'
-    : st.state === 'stale' ? '（待更新）'
-      : st.state === 'missing' ? '（待装）'
-        : st.state === 'unreadable' ? '（未验证：读不到落点 ' + st.why + ' —— 这不是「没装」）'
-          : '（源读不了：' + st.why + '）'
-  console.log('  ' + label + d + note)
-  if (check || st.state === 'unreadable' || st.state === 'error') continue
-  mkdirSync(dstDir, { recursive: true })
-  writeFileSync(dst, readFileSync(src, 'utf8'), 'utf8')
-  writeFileSync(join(dstDir, '.teamkit'), 'teamkit:v1 ' + d + '\n', 'utf8')
+  for (const root of SKILL_ROOTS) {
+    const dstDir = join(root, d)
+    const dst = join(dstDir, 'SKILL.md')
+    const st = statusOf(src, dst)
+    if (st.state === 'missing') missing += 1
+    if (st.state === 'unreadable') unreadable += 1
+    const label = st.state === 'same' ? 'OK  ' : st.state === 'unreadable' ? '??  ' : st.state === 'error' ? 'XX  ' : '->  '
+    const note = st.state === 'same' ? '（一致）'
+      : st.state === 'stale' ? '（待更新）'
+        : st.state === 'missing' ? '（待装）'
+          : st.state === 'unreadable' ? '（未验证：读不到落点 ' + st.why + ' —— 这不是「没装」）'
+            : '（源读不了：' + st.why + '）'
+    // ★ 公共技能根那一份额外标注（**让人知道那是"本地不锁"才装的**）
+    const where = root === SKILLS_DST ? '  ⚠️ 公共技能根（**只有 `--global` 会装它**）' : ''
+    console.log('  ' + label + d + note + where)
+    if (check || st.state === 'unreadable' || st.state === 'error') continue
+    mkdirSync(dstDir, { recursive: true })
+    writeFileSync(dst, readFileSync(src, 'utf8'), 'utf8')
+    writeFileSync(join(dstDir, '.teamkit'), 'teamkit:v1 ' + d + '\n', 'utf8')
+  }
+}
+// ★★★ **`--locked` 模式：把公共技能根里【旧版遗留】的清掉**（`B180`）
+// ```
+// 【为什么必须清】旧版安装器**无条件**把 7 条装进了公共根 ⇒ 用户机器上可能还留着
+//   ⇒ ★ **光"新版不装"不够** —— 那份遗留仍在，而它**正是委托方报的那个泄漏源** ❌
+// ⇒ 只清**带 `.teamkit` 标记**的（与 install/uninstall 一贯口径一致 —— **不碰用户自己的**）
+// ⚠️ **而 `--global` 模式【不清】**（那种模式下本来就该有）
+// ```
+if (lockedMode && !check) {
+  let cleaned = 0
+  if (existsSync(SKILLS_DST)) {
+    for (const d of dirs) {
+      const p = join(SKILLS_DST, d)
+      if (existsSync(join(p, '.teamkit'))) {
+        rmSync(p, { recursive: true, force: true })
+        cleaned += 1
+      }
+    }
+  }
+  if (cleaned > 0) {
+    console.log(`  ★ \`--locked\`：清掉公共技能根里 ${cleaned} 条旧版遗留（\`${SKILLS_DST}\`）—— **它正是"别的预设也读到"的那个源**`)
+  }
 }
 // ★★ **Talent 目录要"只清自己装的"**（2026-09-14 / Round 76 修的真缺陷）。
 //
@@ -601,6 +695,6 @@ if (!check) {
 }
 if (unreadable > 0) {
   console.log('')
-  console.log('有 ' + unreadable + ' 个**未验证**（读不到落点 ' + SKILLS_DST + '，通常是沙箱拒绝访问 DSH_HOME）——')
+  console.log('有 ' + unreadable + ' 个**未验证**（读不到落点 ' + UPSTREAM_DST + '，通常是沙箱拒绝访问 DSH_HOME）——')
   console.log('这不是「没装」：换能读该路径的 shell 重跑 --check，或用 read 工具直接读该目录下的 SKILL.md。')
 }
