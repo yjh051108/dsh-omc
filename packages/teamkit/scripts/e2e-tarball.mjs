@@ -76,17 +76,44 @@ try {
   }
   // ── 4. 六个落点齐 + 非空 ────────────────────────────────────────────────
   const want = [
-    ['方法技能', join(fakeHome, 'skills'), 7],
+    // ★★★ **2026-09-19 改**（`B178` · 委托方亲手报的"skill 散到别的预设"）
+    // ```
+    // 【原来这条是】`['方法技能', join(fakeHome, 'skills'), 7]` —— 断言装到**公共技能根** ❌
+    // 【为什么改】公共根被 DSH 本体的默认根清单扫到（`dsh-skill-filesystem/lib/index.js:171-172`，
+    //   `includeDefaultRoots` 默认 `true`）⇒ **任何预设都读得到**
+    //   ⇒ 别的预设的 agent 读了"组队/招人"那 7 条 ⇒ **有"开子代理的冲动"**（委托方原话）
+    // 【新判据】**公共技能根那一条【删掉】**（**它原来恰好在断言"泄漏发生了"** ❌）·
+    //   改为**只断言专属落点**，并在下面加一条**反向断言**（公共根里不许有 `teamkit*`）✅
+    // ```
+    ['上游根（技能的【唯一】落点）', join(fakeHome, 'teamkit', 'skills-upstream'), 7],
     ['talents', join(fakeHome, 'teamkit', 'talents'), 7],
     ['原则（自演化位）', join(fakeHome, 'teamkit', 'talents', 'principles'), 2],
     ['角色档', join(fakeHome, 'teamkit', 'roles'), 8],
-    ['上游根', join(fakeHome, 'teamkit', 'skills-upstream'), 7],
     ['预设 omc', join(fakeHome, '.agent-presets', 'omc'), 3],
   ]
   for (const [name, p, min] of want) {
     let n = 0
     try { n = readdirSync(p).length } catch { n = 0 }
     check(n >= min, `${name} 落到 ${p.includes('fake-home') ? '<fake-home>/' + p.split('fake-home')[1].replace(/\\/g, '/') : p}（≥${min} 项）`, `n=${n}`)
+  }
+  // ★★★ **反向断言：公共技能根里【不许】有那 7 条**（`B178` 的核心 —— **"隔离"的判据**）
+  // ```
+  // ⚠️ **不是"公共根为空"**（用户自己的 skill 可能在那儿）—— 而是 **"我们的那 7 条不许在那儿"**
+  //   ⇒ 这就是**用户会看到的那个症状**（别的预设下也有 teamkit）的机械形态 ✅
+  // ```
+  {
+    const pub = join(fakeHome, 'skills')
+    let leaked = []
+    try {
+      leaked = readdirSync(pub).filter((d) => d === 'teamkit' || d.startsWith('teamkit-'))
+    } catch {
+      leaked = [] // 目录不存在 ⇒ 没泄漏 ✅
+    }
+    check(
+      leaked.length === 0,
+      '★ **公共技能根里没有 teamkit\\*（隔离成立）**',
+      `★ 泄漏了 ${leaked.length} 条：${leaked.join(' ')} ⇒ **别的预设会读到它们**（B178）`,
+    )
   }
   // 组织层（此前静默没装的那一项）
   for (const f of ['TALENTS.yml', 'RULES.yml']) {
