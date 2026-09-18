@@ -91,38 +91,36 @@ for d in "$PKGS_DIR"/*/; do
   fi
 done
 
-info '[2/5] 依赖（我们[不 vendoring] 的那两个 ⇒ 从既有仓装）'
-# ★★ 为什么不并进本仓（2026-09-18 CEO 裁定"甲"）：
+info '[2/5] 自检：注入器兜底（**R1–R7**）是否在我们要装的那份里'
+#
+# ★★★ **为什么删掉了原来的"从既有仓装依赖"那一步**（2026-09-18 CEO 裁定 · `B159`/`B160`）：
 # ```
-# · `dsh-super-injector` = **运行时注入基础设施**（服务所有插件，不只是本套装）
-#   ⇒ 而它的"单仓"**已经是** `dsh-routing-suite`（其 README 逐字：三个组件随本仓库统一演进；
-#     上游独立仓库保留用于独立发布，后续可转镜像/归档）⇒ **并进来会造第四份**
-# · `dsh-engram-relay`   = **记忆层**（通用能力）⇒ 同上
-# ⇒ ★ **甲案**：**本仓是"公司套件"，那两个是"依赖"** —— 像 `npm i express`：
-#    **源码不在你的仓里，但你只敲一条命令** ✅
+# 【原先的错】`packages/` 里已有 9 个包（**含 `super-injector` 与 `engram-relay`**），
+#   而旧版 `[2/5]` 还从网上再装这两个 ⇒ **重复装 11 个** ⇒ 而更糟的是：
+#   · ★ `packages/super-injector` = **我们回流了 R1–R7 的版本**（含崩溃兜底 + 有界交接）
+#   · ★★ **而老仓 `dsh-super-injector` 是【另一个版本】**（**建于 08-13**，**没有 R1–R7**）
+#   ⇒ ⇒ ★★★ 若从老仓拉 ⇒ **用户可能拿到【没有崩溃兜底】的注入器** ——
+#     而那是委托方最痛的 `#1`（`DSH 反反复复重启`）❌
+# ⇒ 正解：**只装本仓 `packages/`**（**它自足 · 离线可装 · 且是带兜底的那份**）✅
 # ```
-# ⚠️ 拿不到时要【明说】（不是静默跳过）—— "没装"与"装了但坏了"必须能分辨（`B51`）
-DEP_REPOS=(
-  "dsh-super-injector|https://github.com/yjh051108/dsh-super-injector|运行时注入（dev_* 工具全家桶）—— 缺它则【注入】能力不可用"
-  "dsh-engram-relay|https://github.com/yjh051108/dsh-engram-relay|记忆图谱（engram）—— 缺它则【跨会话记忆】不可用"
-)
-for spec in "${DEP_REPOS[@]}"; do
-  IFS='|' read -r dname durl dwhy <<< "$spec"
-  if [ "${DRY_RUN:-0}" = "1" ]; then
-    ok "$dname（依赖）：将执行 ${DSH_CMD[*]} plugin --profile $PROFILE add $durl"
-    PASS_LIST+=("$dname(dep)"); continue
-  fi
-  if "${DSH_CMD[@]}" plugin --profile "$PROFILE" add "$durl" >/dev/null 2>&1; then
-    ok "$dname（依赖）—— $dwhy"
-    PASS_LIST+=("$dname(dep)")
-  else
-    # ★★ **失败要明说"缺什么能力"**，而不是笼统"失败"
-    warn "⚠️ 无法获取 $dname（网络/仓不可达）⇒ **本次未装它**"
-    warn "   后果：$dwhy"
-    warn "   单独装：${DSH_CMD[*]} plugin --profile $PROFILE add $durl"
-    DEP_MISSING+=("$dname")
-  fi
-done
+# ★ 而这一步把它变成**机械判据**（**不再靠"人记得核"** —— 那正是 `H29` 那个问题）
+INJECTOR_LIB="$PKGS_DIR/super-injector/lib/index.js"
+if [ ! -f "$INJECTOR_LIB" ]; then
+  # 冻结产物形态时 lib/ 应当在（本套装发布为"带 lib 的形态"）
+  warn "未找到 $INJECTOR_LIB ⇒ 跳过兜底自检（若你拿到的是源码形态，见文末"需要构建时"）"
+  SKIP_LIST+=("injector-fallback-check")
+else
+  check_grep() {  # $1=特征串 · $2=期望最少出现次数 · $3=这条代表什么
+    n=$(grep -c -- "$1" "$INJECTOR_LIB" 2>/dev/null || true)
+    [ -z "$n" ] && n=0
+    if [ "$n" -ge "$2" ]; then ok "注入器含 $1 ×$n（$3）"
+    else err "注入器**缺** $1（找到 $n · 期望 ≥$2）—— $3"; FAIL_LIST+=("injector:$1"); fi
+  }
+  check_grep 'unhandledRejection' 1 'R1 未处理 rejection 常驻兜底（#1 痛点的崩溃兜底）'
+  check_grep 'usesSlots' 1 'R6 不是每个 client 入口都要注册 slot（17 次启动未恢复）'
+  check_grep "handoff(" 3 'R7 工具边界有界交接（二次吊死案底）'
+  check_grep '修法：在该工具里' 1 'R2 逃逸回执里的修法建议'
+fi
 
 info '[3/5] 公司层资产（teamkit 安装器）'
 TK_INSTALLER="$PKGS_DIR/teamkit/tools/install-teamkit.mjs"

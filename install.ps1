@@ -67,31 +67,33 @@ foreach ($d in (Get-ChildItem $PkgsDir -Directory | Sort-Object Name)) {
   else { Err "$name（可单独重试：$($DshCmd -join ' ') plugin --profile $Profile add $($d.FullName)）"; $fail += $name }
 }
 
-Info '[2/5] 依赖（我们[不 vendoring] 的那两个 ⇒ 从既有仓装）'
-# ★★ 为什么不并进本仓（2026-09-18 CEO 裁定"甲"）：
-#   `dsh-super-injector` = 运行时注入基础设施（服务所有插件，不只是本套装）⇒ 它的"单仓"已是
-#     `dsh-routing-suite`（其 README 逐字：三个组件随本仓库统一演进；上游独立仓库保留用于独立发布）
-#     ⇒ 并进来会造【第四份】· `dsh-engram-relay` = 记忆层，同理。
-#   ⇒ 本仓是"公司套件"，那两个是"依赖" —— 像 `npm i express`：源码不在你的仓里，但你只敲一条命令。
-# ⚠️ 拿不到时要【明说】（不是静默跳过）—— "没装"与"装了但坏了"必须能分辨（B51）
-$depRepos = @(
-  @{ Name = 'dsh-super-injector'; Url = 'https://github.com/yjh051108/dsh-super-injector'; Why = '运行时注入（dev_* 工具全家桶）—— 缺它则【注入】能力不可用' },
-  @{ Name = 'dsh-engram-relay';   Url = 'https://github.com/yjh051108/dsh-engram-relay';   Why = '记忆图谱（engram）—— 缺它则【跨会话记忆】不可用' }
-)
-$depMissing = @()
-foreach ($dep in $depRepos) {
-  if ($DryRun) {
-    Ok "$($dep.Name)（依赖）：将执行 $($DshCmd -join ' ') plugin --profile $Profile add $($dep.Url)"
-    $pass += "$($dep.Name)(dep)"; continue
+Info '[2/5] 自检：注入器兜底（**R1–R7**）是否在我们要装的那份里'
+# ★★★ 为什么删掉了原来的"从既有仓装依赖"那一步（2026-09-18 CEO 裁定 · B159/B160）：
+#   packages/ 里已有 9 个包（含 super-injector 与 engram-relay），而旧版 [2/5] 还从网上再装这两个
+#     ⇒ 重复装 11 个；而更糟的是：
+#       packages/super-injector = 我们回流了 R1-R7 的版本（含崩溃兜底 + 有界交接）
+#       老仓 dsh-super-injector 是另一个版本（建于 08-13，没有 R1-R7）
+#     ⇒ 若从老仓拉 ⇒ 用户可能拿到【没有崩溃兜底】的注入器 —— 而那是委托方最痛的 #1 ❌
+#   正解：只装本仓 packages/（它自足 · 离线可装 · 且是带兜底的那份）。
+#   而这一步把它变成机械判据（不再靠"人记得核" —— 那正是 H29 那个问题）。
+$injectorLib = Join-Path $PkgsDir 'super-injector\lib\index.js'
+if (-not (Test-Path $injectorLib)) {
+  Warn "未找到 $injectorLib ⇒ 跳过兜底自检（若你拿到的是源码形态，见文末「需要构建时」）"
+  $skip += 'injector-fallback-check'
+} else {
+  # ⚠️ 必须显式按 UTF-8 读 —— lib/index.js 无 BOM（它是编译产物）
+  #   而 Windows PowerShell 5.1 的 Get-Content -Raw 默认按 ANSI/GBK 读
+  #   ⇒ 中文特征串（修法：在该工具里）会被破坏 ⇒ 假红（实测栽过一次）
+  $injText = Get-Content $injectorLib -Raw -Encoding UTF8
+  function CheckGrep($needle, $min, $why) {
+    $n = ([regex]::Matches($injText, [regex]::Escape($needle))).Count
+    if ($n -ge $min) { Ok "注入器含 $needle x$n（$why）" }
+    else { Err "注入器**缺** $needle（找到 $n · 期望 >=$min）—— $why"; $script:fail += "injector:$needle" }
   }
-  & $DshCmd[0] $DshCmd[1..($DshCmd.Count-1)] plugin --profile $Profile add $dep.Url *> $null
-  if ($LASTEXITCODE -eq 0) { Ok "$($dep.Name)（依赖）—— $($dep.Why)"; $pass += "$($dep.Name)(dep)" }
-  else {
-    Warn "⚠️ 无法获取 $($dep.Name)（网络/仓不可达）⇒ **本次未装它**"
-    Warn "   后果：$($dep.Why)"
-    Warn "   单独装：$($DshCmd -join ' ') plugin --profile $Profile add $($dep.Url)"
-    $depMissing += $dep.Name
-  }
+  CheckGrep 'unhandledRejection' 1 'R1 未处理 rejection 常驻兜底（#1 痛点的崩溃兜底）'
+  CheckGrep 'usesSlots' 1 'R6 不是每个 client 入口都要注册 slot（17 次启动未恢复）'
+  CheckGrep 'handoff(' 3 'R7 工具边界有界交接（二次吊死案底）'
+  CheckGrep '修法：在该工具里' 1 'R2 逃逸回执里的修法建议'
 }
 
 Info '[3/5] 公司层资产（teamkit 安装器）'
