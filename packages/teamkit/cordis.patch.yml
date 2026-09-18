@@ -1,0 +1,14 @@
+# dsh-teamkit bundle 层：插入一条插件行。
+#
+# 为什么只有一行：本插件的全部行为都由 `config` 驱动（见 lib/config.js 的 schema 表），
+# 不再往 patch 里散落路径 —— 那样会把「单一事实来源」重新打散
+# （这正是 task-51 B.1 要求收敛的东西）。
+#
+# ⚠️ config 覆盖语义（LANDMINES §14.2，已实测）：profile patch 里覆盖 `config` 是
+# **按顶层键赋值、不是深合并** —— 写 `config: {只写一个键}` 会把整个 config 对象换掉。
+# 所以用户若要在 profile patch 里覆盖，**必须把要保留的键一起写全**；本行的 config 为空，
+# 所有键都走 lib/config.js 里的默认值（默认值本身即「装上就有效果」的那一档）。
+- insert:
+    - id: dsh-teamkit
+      name: '@dsh-external/dsh-teamkit'
+      config: {}

@@ -1,0 +1,33 @@
+{
+  "name": "@dsh-external/dsh-org-panel",
+  "version": "0.0.1",
+  "description": "侧边栏组织面板：复用 OMC 办公室渲染，实时显示 DSH 子代理/员工状态",
+  "license": "BSD-3-Clause",
+  "private": true,
+  "type": "module",
+  "main": "./lib/index.js",
+  "exports": {
+    ".": {
+      "default": "./lib/index.js"
+    },
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "public",
+    "cordis.patch.yml"
+  ],
+  "_publishNote": "★ 发布面 = files ∪ npm 必带项（README.md / LICENSE / package.json）= 41 件。notes/ shots/ tools/ runs/ 是【内部区】（开发笔记 / 截图 / 探针 / 产物）—— 不在 files 里，永不随包发出；★ 别把它们加进来（notes/ 里有大量开发期痕迹）。发布面唯一实现：omc-agent-teams/tools/publish-surface.mjs。",
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-runtime"
+      ]
+    }
+  }
+}

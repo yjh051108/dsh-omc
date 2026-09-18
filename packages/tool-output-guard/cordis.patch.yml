@@ -1,0 +1,8 @@
+# dsh-tool-output-guard bundle 层：插入插件行。
+# 工具结果契约守卫：在 tools/post-execute 边界把 output.render 的裸值
+# （字符串 / 非 ContentBlock 数组）归一成 ContentBlock[]，防止写脏会话档
+# （Durable 消息校验失败 + content.some is not a function）。
+- insert:
+    - id: dsh-tool-output-guard
+      name: '@dsh-external/dsh-tool-output-guard'
+      config: {}

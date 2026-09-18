@@ -1,0 +1,45 @@
+# 可选补丁：把 `agent-team` 的 `maxMembers` 调宽松（**给开源用户的"招错不心疼"档**）
+#
+# ⚠️ 这不是插件自带的 `cordis.patch.yml` —— **要你自己粘**。为什么不做成默认：
+#    · 它改的是**别的插件**（`agent-team`）的配置 ⇒ 那是一种**隐藏耦合**：
+#      若 DSH 哪天改了 `agent-team` 的 schema，我们这份 patch 会**静默地把它整个换掉**
+#      （见下面的 §14.2 警告）；
+#    · 而"名额给多少"是**你的成本决策**（委托方口径：**名额不是约束，预算才是**），
+#      不该由一个装了就生效的插件替你定。
+# → 所以：**默认不替你决定；想要宽松就在这里抄一份到你的 profile 补丁层。**
+#
+# ── 怎么用 ──────────────────────────────────────────────────────────────
+# 把下面 `- id: agent-team` 那一段粘进 **你的 profile 的用户补丁层**：
+#     $DSH_HOME/profiles/<你的 profile>/cordis.patch.yml
+# 用户补丁层在**所有 bundle 层之后**应用 ⇒ 它能覆盖 `agent-team` 那一行。
+# 生效时机：**下次加载 profile / 重启 `dsh web`**（只写配置不会热生效）。
+#
+# ── ⚠️ 三条必须一起知道的（都有实测来源）────────────────────────────────
+#
+# 1. **patch 覆盖 `config` 是按顶层键赋值，不是深合并**（`LANDMINES.md` §14.2，
+#    实读 `cordis-plugin-include@1.0.7\lib\index.js:100-103`：`target[key] = value`）
+#    ⇒ 只写 `config: {maxMembers: N}` 会把 `agent-team` 的**整个 config 对象换掉**，
+#      其余四个限额只能回落到 schema 默认值。
+#      本例那四个默认值恰好与 bundle 值相同（256 / 64 / 65536 / 5000）所以无害，
+#      **但换一个插件就会静默丢配置** ⇒ **下面五个键全部显式写全**，这就是模板的意义。
+# 2. **`disabled: true` 指向不存在的 entry 只是 warn、不是致命**（`index.js:91-95`
+#    → `warn("patch: entry %C not found")` + `continue`）；**真正致命的是重复 id**
+#    （`cordis-plugin-loader\lib\index.js:91` 抛 `duplicate loader entry id`）。
+#    ⇒ 粘之前先确认你的 `cordis.patch.yml` 里**没有**第二个 `- id: agent-team`。
+# 3. **名额仍不可回收、名字不可复用** —— 抬上限只让"招得起"，**不会让"辞得掉"**
+#    （`roster.d.ts:39` immutable + `roster.js:243-247`）。这条放宽**不能**替代
+#    README「限制」节里那套"不要招错 + 重开一局"。
+#
+# ── 建议值 ──────────────────────────────────────────────────────────────
+# · 8    = 底座默认（`DEFAULT_MAX_MEMBERS`，`dsh-experimental-agent-team\lib\types\index.js:49`）
+# · 24   = 小团队多留几手（本文件给的示例）
+# · 100  = 本项目当前部署用的值（委托方裁定；再多就纯看预算）
+# 选一个写进 `maxMembers`。
+
+- id: agent-team
+  config:
+    maxMembers: 24
+    maxTasks: 256
+    maxPendingMessagesPerMember: 64
+    maxMessageBytes: 65536
+    disposalTimeoutMs: 5000

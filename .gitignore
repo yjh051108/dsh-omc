@@ -1,0 +1,14 @@
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+*.bak
+*.bak-*
+*.db
+*.db-wal
+*.db-shm
+db-backups/
+*.onnx
+*.tsbuildinfo
+.cache/
+.DS_Store

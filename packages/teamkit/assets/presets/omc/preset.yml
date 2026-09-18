@@ -1,0 +1,3 @@
+name: OMC 开公司模式（Agent Teams）
+description: "选它 = 以开公司的方式做这个项目：成员各有技能工作副本（fork）、上游（=前辈）更新会通知并附说明、可比对差异后部分采纳、Lead 合并带强制说明。其余预设一个字节都不动，官方的 standard agent team 照常可用。"
+order: 5

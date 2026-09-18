@@ -1,0 +1,115 @@
+{
+  "schema": "teamkit/roles@1",
+  "source": "talents/_SPEC.md（字段契约）+ TALENTS.yml（Market 索引）",
+  "note": "生成物 —— 权威源是 talents/*.md：改 Talent 再重跑生成器；**别手改本文件或 roles/*.json**。",
+  "roles": [
+    {
+      "name": "chief",
+      "profile": "chief.json",
+      "role": "coordination",
+      "level": "ceo",
+      "skills": [
+        "裁决",
+        "停损",
+        "对外口径"
+      ],
+      "gate_policy": "review",
+      "use_when": "要对外口径、不可逆动作、或'什么时候停'要有人拍板时才设"
+    },
+    {
+      "name": "coo",
+      "profile": "coo.json",
+      "role": "coordination",
+      "level": "coo",
+      "skills": [
+        "跨线裁决",
+        "切分",
+        "风险汇总"
+      ],
+      "gate_policy": "review",
+      "use_when": "两条以上线在跑、且有资源冲突或改切分的需要时才设"
+    },
+    {
+      "name": "director",
+      "profile": "director.json",
+      "role": "coordination",
+      "level": "lead",
+      "skills": [
+        "拆活",
+        "派活",
+        "核读数",
+        "定判据"
+      ],
+      "gate_policy": "review",
+      "use_when": "管一个辖区：接活→拆清→派人→自己核读数再上报。产出是【判据+人+节奏】不是代码；不自己写代码、不替执行者跑探针"
+    },
+    {
+      "name": "engineer",
+      "profile": "engineer.json",
+      "role": "engineering",
+      "level": "ic",
+      "skills": [
+        "实现",
+        "自测",
+        "定位失败"
+      ],
+      "gate_policy": "review",
+      "use_when": "按判据把代码写出来，并把原始读数贴回来"
+    },
+    {
+      "name": "marketer",
+      "profile": "marketer.json",
+      "role": "marketing",
+      "level": "ic",
+      "skills": [
+        "选题",
+        "文案钩子",
+        "转化路径设计",
+        "发布节奏",
+        "归因埋点"
+      ],
+      "gate_policy": "review",
+      "use_when": "已经有人群和商品，缺的是'让他们看见并下单'；或要设计内容→转化的可归因路径",
+      "added": "2026-09-12 · 001 项目缺口现写（自有渠道推流），已登记回索引"
+    },
+    {
+      "name": "research-lead",
+      "profile": "research-lead.json",
+      "role": "research",
+      "level": "lead",
+      "skills": [
+        "拆题",
+        "信息检索",
+        "来源交叉验证"
+      ],
+      "gate_policy": "review",
+      "use_when": "要一条研究线的结论，且结论必须可追溯到来源"
+    },
+    {
+      "name": "reviewer",
+      "profile": "reviewer.json",
+      "role": "review",
+      "level": "ic",
+      "skills": [
+        "构造反例",
+        "复现",
+        "判据核对"
+      ],
+      "gate_policy": "review",
+      "use_when": "任何交付要一个带证据的判决；只读 + 报告，不改东西"
+    },
+    {
+      "name": "writer",
+      "profile": "writer.json",
+      "role": "writing",
+      "level": "ic",
+      "skills": [
+        "结构化写作",
+        "术语一致",
+        "删冗"
+      ],
+      "gate_policy": "review",
+      "use_when": "把已有结论组织成给人看的文本；不负责找事实"
+    }
+  ]
+}

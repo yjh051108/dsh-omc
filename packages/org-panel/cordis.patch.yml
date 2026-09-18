@@ -1,0 +1,15 @@
+# dsh-org-panel bundle 层：把插件行插入 profile。
+#
+# 运行时注入（dev_inject_plugin）不需要这一层；它是给 `dsh plugin add` 的安装形态准备的。
+#   ⇒ 没有它，`dsh plugin add` 只会把它当普通依赖装进 `dependencies`，**不会激活**
+#     （CLI 原话：declares no dsh.bundle — installed as a plain dependency,
+#      not a profile layer）。
+#
+# 与 `@dsh-external/dsh-agent-browser` 同构：它同时声明 dsh.bundle + dsh.client，
+# 且是实测可用的生产实例（本仓 client 半的座位登记模式也抄自它）。
+#
+# config 为空：本插件全部行为由 lib/index.js 的默认值驱动，没有需要 profile 覆盖的键。
+- insert:
+    - id: dsh-org-panel
+      name: '@dsh-external/dsh-org-panel'
+      config: {}

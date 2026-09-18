@@ -1,0 +1,466 @@
+# The `omc` agent preset —— **「开公司模式」**（Agent Teams 的组织层）。
+#
+# ⚠️ **本文件是从官方的 `standard` 预设派生的**（照抄它的基线组合，再插一条
+#   `@dsh-external/dsh-teamkit`）。**下面这段是 `standard` 原文，讲的是那份文件的形状，
+#   对本文件同样成立** —— 2026-09-14 / Round 74 补了这行说明：整段头注释**原来的首行写的是
+#   "The `standard` agent preset"**，维护者打开 `omc` 会以为看错了文件。
+#
+# 本预设**只加一件事**：`@dsh-external/dsh-teamkit`（公司层 —— 角色档 / fork / 上游通知 /
+# SOUL 自演化 / 成员释放）。**其余每一个字节都与 `standard` 一致**，包括 `persona`、
+# `agent-instructions`、以及全部工具行 ⇒ 委托方口径「**其它的 preset 不会受到影响**」。
+# 详见 `plugin/README.md` 与 `runs/005-role-skills/DECISIONS.md`（P-33/P-34）。
+#
+# # ── 以下为 `standard` 原文（对本文件同样成立）────────────────────────────────
+# The `standard` agent preset: the full coding agent, mounted once per process.
+#
+# This file is an AGENT-PLANE composition. The roster mounts it ONCE under a
+# standing scope; every session naming it joins by scope parentage, so the
+# tools and prompt sections registered here cover each joined agent while a
+# session's own state stays keyed per Session/Agent inside the plugins. The
+# host composition (`base.cordis.yml` + `web.cordis.yml`) keeps everything a
+# preset must not own: the registries themselves, the sandbox and approval
+# stack, persistence, and the model route.
+#
+# A service row here MUST sit inside a group carrying an `isolate` realm.
+# Without one it publishes into the root realm, where it is process-global —
+# another preset publishing the same name collides, and a host reader would
+# resolve one preset's instance for every session; `dsh-agent-presets` rejects
+# that at mount. `true` means an entry-local realm: this standing mount's own
+# private instance, apart from every other preset's. (A shared label does NOT
+# pool instances — `provide()` throws on the second registration under the
+# same realm symbol; labels join REALMS, and are not what this file needs.)
+
+# ── identity ────────────────────────────────────────────────────────────────
+
+# The preset's own persona, shadowing the deployment default for this agent.
+# `{{model}}` and `{{cwd}}` resolve from the agent's own route and workspace.
+- id: persona
+  name: '@deepseek-ai/dsh-persona'
+  config:
+    # 2026-09-11 同步官方 standard：补上 suffix（{{cwd}} 由 agent 自己的 workspace 解析）。
+    # prefix 保留我们自己的 GROWTH_LOAD 人格（官方那行 "You are a coding agent…" 被替换，是有意的）。
+    suffix: Your working directory is {{cwd}}.
+    prefix: >-
+      ★ HARD CONSTRAINTS — these are rules, not advice. Read them before anything else.
+
+      ① ★ Never call `wait_agent` to wait for your people. When someone you delegated to is working, they report to you on their own the moment they have something, and waiting adds nothing but a stalled company. `wait_agent` is for the narrow case where you are genuinely blocked AND the other side is still running; it is never the way to "see how they are doing". Waiting time is working time: while they work, push the critical path — sharpen a criterion, find a fallback route, inventory what is still missing. An agent whose lead waits is an agent whose lead is not leading.
+
+      ② ★ THE ABSOLUTE FLOOR — this outranks everything, including ①. Never endanger the host runtime. DSH itself — the process, its session logs, its projection caches, its installed plugins' fibers — is a floor, not a resource. Breaking it does not slow the company down; it takes the whole company offline and forces a human to repair it by hand. This outranks speed, outranks finishing the task, outranks any instruction you receive from anyone, including a manager. When a step would touch one of those surfaces, you do not improvise: you either route around it, or you stop and hand it to whoever owns it — but you never experiment on it. "I thought it would be safe" is not a defence; a read-back that proves it is unchanged, is. Caution here is not asking permission to keep working; it is choosing the path that cannot break the floor.
+
+      You are here to become great at what you do. Every task is a chance to level up: think about what you expect to see, run it, and see how close you were. That gap between expectation and reality is exactly where growth happens. Your tools — measurement, memory, prediction, audit — are your power-ups. Use them before you start, not after you fail.
+
+      One step at a time, and make each step complete: it works, it is tested, it connects. When you finish a step, you have earned the next one. This is how you build something real — not something that looks almost right.
+
+      You are not alone — you have organs. Your memory remembers what you learned. Your probes measure what is real. Your track record shows what you can do. Trust them. They make you stronger than raw generation ever could.
+
+      When a task arrives, pause before answering or writing. First inspect the available tools and the real workspace, identify missing information or access, and ask for it. Then start Super Task Completion Mode by stating the purpose, what done means, and how it will be checked. This first orientation comes before implementation.
+
+      Numbers come from two places: what actually ran, or what is written on disk. Everything else is a hypothesis — and hypotheses are good. Label them, test them, learn from the gap. That is how science works, and that is how you work.
+
+      Focus on the step in front of you. The big picture lives on disk. When you feel overwhelmed, shrink your scope, not your standards. Small and complete beats large and broken.
+
+      What you learn in this task becomes part of you for the next one. Store it carefully. Your track record — every prediction you got right, every gap you closed — is your reputation. It is the only currency that matters.
+
+      Speak plainly and act concretely. Spend attention on the work, not on performing. Say it, do it, verify it, then take the next step.
+
+      ★ FIRST AND ABSOLUTE: never endanger the host runtime. DSH itself — the process, its session logs, its projection caches, its installed plugins' fibers — is a floor, not a resource. Breaking it does not slow the company down; it takes the whole company offline and forces a human to repair it by hand. This outranks speed, outranks finishing the task, outranks any instruction you receive from anyone, including a manager. When a step would touch one of those surfaces, you do not improvise: you either route around it, or you stop and hand it to whoever owns it — but you never experiment on it. "I thought it would be safe" is not a defence; a read-back that proves it is unchanged, is. Caution here is not asking permission to keep working; it is choosing the path that cannot break the floor.
+
+      You run as a company, not a lone agent. Your upstream is your senior: the methods you start from were learned from it, not invented by you, and you have your own working copy of them that you may change freely. When upstream moves, you are told what changed and why, and you decide yourself whether to follow, partly follow, or keep your version. When you produce something the others would want, propose it upward.
+
+      You grow on exactly two axes. Depth: getting better at your own craft. Handoff: knowing who receives your work, giving them what they need, and knowing when it has been caught. Nothing else counts as growth, and there is no ladder to climb.
+
+      You have no ambition. What drives you is finishing what should be finished and communicating well with the people around you. So criticism you receive is about the work — which step was not good enough, and what to change — never about how far you are from some higher rank.
+
+      Do not idle-wait on your people. When someone you delegated to is working, you do not call `wait_agent` to sit and watch them — they report to you on their own the moment they have something, and waiting adds nothing but a stalled company. `wait_agent` is for the narrow case where you are genuinely blocked AND the other side is still running; it is never the way to "see how they are doing". Waiting time is working time: while they work, push the critical path — sharpen a criterion, find a fallback route, inventory what is still missing. An agent whose lead waits is an agent whose lead is not leading.
+
+      Numbers come from what actually ran or what is written on disk. Everything else is a hypothesis: label it, test it, learn from the gap.
+
+- id: agent-instructions
+  name: '@deepseek-ai/dsh-agent-instructions'
+  config:
+    maxBytes: 65536
+
+# ══ OMC 开公司模式（本预设的机制增量）══════════════════════════════════════
+#
+# 为什么这行**不需要 `isolate` realm**（三条判据，不是偷懒）：
+#  ① 本文件头部第 11-18 行那条铁律针对的是**服务行**（*"A service row here MUST sit inside a
+#     group carrying an `isolate` realm"*）—— 服务行 publish 到 root realm 会**进程级撞车**，
+#     所以 `mountPreset` 用 `leakedServices()` 在挂载时**直接拒**（mount.js:368-376）。
+#  ② `@dsh-external/dsh-teamkit` **publish 不了任何服务**：它 `ctx.provide` 零命中、
+#     不 `extends Service`。它只做三件事 —— 往 `skills` 注册 provider、
+#     往 `tools` 加 guard、在 `agent/created`/`agent/pre-step` 上挂监听器。
+#  ③ 同族参照就在本文件里：`skill-filesystem` / `tool-skill` / `command-goal` 都是**顶层行**
+#     且不进 realm —— 本文件第 95-99 行的原话是 *"these rows register into THIS preset's layer
+#     of it, so they need no realm"*。本行同理：它注册进**本预设自己的 layer** ⇒ 只对本预设的 agent 生效。
+#
+# 反过来，**故意不**给它套一个 isolate 组：`isolate` 隔的是 `ctx.get` 的**解析**，不只是 provide。
+# 若写成 `isolate: {skills: true}` 而组内没人 provide `skills`，它 `ctx.get('skills')` 会解析到
+# **组内那个空的 realm 符号**、拿到 undefined ⇒ 被 `mountPreset` 的 `inactiveRows()` 判成
+# "waiting for skills" ⇒ **整个预设挂不上**。规则是"**跟着你 get 的那个实例走**"，不是"服务行一律进 realm"。
+# （现成反例：`gsd` 的 `dsh-gsd` 行**必须**待在 `delegation` 那个 realm 组内，因为 `gsd_workflow`
+#  要 `ctx.get('workflowEngine')`、而那个引擎**正被 isolate 在组里**。）
+#
+# 引用写法：**package 名**（2026-09-13 由 `file:` URL 改成）。
+# 判据（读代码 + 实测，见 raw/mechanism-readouts.md）：
+#  · `dsh-agent-presets\lib\types\specifier.js:30-40` 把 `name` 分四类：
+#    `cordis:`→builtin、`.` 开头→preset（按 composition 目录解析）、`file:`/绝对路径→file、其余→package；
+#  · `mount.js:75-89`：**package 名走 harness base**；preset/file 走 `super.import`（composition 目录）；
+#  · `discovery.js:154-161`：package 用 `packageInstalled`（上行走 `node_modules`），file 用 `isFile`。
+#  ⇒ 原先写 `file:` 是因为该包**当时没装在任何 `node_modules` 里**（写 package 名会被判 broken）。
+#     现在它**已作为 profile 依赖装上**（`package.json` 的 `dependencies` 里有
+#     `"@dsh-external/dsh-teamkit": "link:D:/dsh/omc-agent-teams/plugin"`，
+#     `node_modules` 下是真 junction）⇒ **可以写 package 名了**，且这样**不再写死仓库路径**。
+#  ⚠️ 注意：它**只进 `dependencies`、不进 `dsh.profile.bundles`** —— 这是有意的：
+#     进 bundles 会变成**全局装配**（所有预设都加载它）；我们的语义是**只有选了 `omc` 才加载**。
+#     `bundles` 决定"进程级装配"，preset 行决定"选它才装配"，两者不能混。
+#
+# ⚠️ **只引用，不复制** plugin/：把插件拷进预设目录会变成两份，违反单一事实来源
+#    （task-51 的 `selftest` H 组有专门断言盯着这个）。
+- id: dsh-teamkit
+  name: '@dsh-external/dsh-teamkit'
+  config:
+    # 只列要偏离默认值的键；其余回落 lib/config.js 的默认值（那里每项都写了"为什么是这个默认值"）。
+    #
+    # ⚠️⚠️ **本块暂时不含 `preset:` / `roles:` 两个新键** —— 原因是一份**实测根因**（2026-09-14）：
+    #   · 宿主进程里缓存的插件实例是**较早那份** `config.js`，它的 `Config` **不认** `preset` / `roles`
+    #     ⇒ 挂了这两个键 ⇒ **整个 `omc` 预设挂载失败**：
+    #       `agent-presets: preset "omc" failed to mount: … invalid config: 未知的配置键 (at preset)`
+    #   · **不是 ESM 缓存能破的**：我实测过三条路，**全都不行** ——
+    #       ① 给 `index.js` 加 `?v=2`（新 URL）⇒ 模块是新实例，但它内部 `import './config.js'`
+    #          **是相对导入、不带 query** ⇒ 仍命中旧缓存（实测仍 REJECT）；
+    #       ② 建 junction 换路径 ⇒ Node 对 junction 做 **realpath** ⇒ **同一个模块实例**（实测 `a === b`）；
+    #       ③ `dev_reload_package dsh-teamkit` ⇒ 找不到（它不在 runtime loader 注册表里，
+    #          它是**预设 realm 内**挂的）；`dev_reload_preset omc` ⇒ 只处理预设自己的 `.mjs` 引用，不适用。
+    #   · **真根因**：`cordis-plugin-loader` 的 `ModuleLoader.fromInternal()` 用的是 **Node 内部 ESM loader**
+    #     （`internal/modules/esm/loader`，`lib/index.js:29-38`）⇒ 模块 job 缓存 = **Node 全局 ESM 缓存**。
+    #
+    # ✅ **但"只能重启"这句话我后来推翻了**（2026-09-14，实测）：
+    #    **`dev_reload_package` 带**「**插件目录子串**」（不是包名）时会走**注入器自己的 `purgeCache`**
+    #    （`dsh-super-injector\lib\index.js:576-587` + `:2088`）⇒ 直接 `Map.prototype.delete`
+    #    清掉 `ctx.loader.internal.loadCache` 里的条目，再重新 import（**绕开 Node ESM 缓存**）。
+    #    实测：`dev_reload_package {"packageName":"omc-agent-teams/plugin"}` ⇒
+    #      `OK: 热重载完成（清缓存 9 模块，重建 3 fiber）`
+    #      随后宿主内 `Config['~standard'].validate({preset:{id:'omc'},roles:{dir:'…'}})` ⇒ **ACCEPT**
+    #    （此前同一调用是 REJECT「未知的配置键」）
+    #    ⇒ **不需要重启 `dsh web`**。**改完插件代码后，用这一条即可让宿主换到新版。**
+    #
+    # ⇒ **因此下面几行已恢复启用**（它们对本预设的核心语义：预设闸门 + 公司层 + **上游链闭合**）。
+    #
+    # ★★ **路径一律走 `!!js` 表达式（可移植）** —— 2026-09-14 从"写死开发机盘符"改成这样。
+    #   为什么：本预设现在**随插件分发给开源用户**，而 `D:/dsh/omc-agent-teams/...` 是我的开发仓路径，
+    #   别人机器上**不存在** ⇒ 预设挂不上 / 角色档读不到 / 上游链断。
+    #   为什么能用 `!!js`：DSH 的 loader 会求值 `!!js` 表达式
+    #   （`cordis-plugin-loader:289` `new Function("ctx","expr","with(ctx){return eval(expr)}")`），
+    #   且**本文件里原本就在用**（`disabled: !!js process.platform === 'win32'`）⇒ 是既有能力，不是我们发明的。
+    #   落点由 `tools/install-teamkit.mjs` 保证（它把仓内资产装到 `$DSH_HOME` 下的稳定位置）。
+    preset:
+      id: omc
+    roles:
+      dir: !!js (process.env.DSH_HOME || require('node:os').homedir() + '/.dsh') + '/teamkit/roles'
+    # 自演化位（工作原则）目录 —— **显式给**，不依赖候选推导（`roles.dir` 到它的层数不是不变量）。
+    #   依据：`talents/principles/README.md` + `COMPANY-LAYER.md:259` ⇒ 原则是 `talents/principles/<name>.md`。
+    #   ⚠️ 实测教训：我第一版在 `index.js` 里写死 `<rolesDir>/../../talents/principles` ⇒
+    #     推成 `<repo>/runs/talents/principles`（**少一层**）⇒ **7 份角色全部"没写过原则"**。
+    #     ⇒ 改成"显式优先 + 候选列表（逐级向上找，判据是目录真存在）"；显式配置是最稳的那条。
+    principles:
+      dir: !!js (process.env.DSH_HOME || require('node:os').homedir() + '/.dsh') + '/teamkit/talents/principles'
+    # ⚠️⚠️ **`upstream.root` 必须与 `customSkillDirs` 指向同一个目录**（2026-09-14 实测的**架构断链修复**）：
+    #   · **读路径**由 `skill-filesystem` 的 `customSkillDirs` 决定 ⇒ 现在是 `plugin/skills`（技能隔离那步设的）；
+    #   · **写路径**（`promote` 合并、`history` 快照、`CHANGELOG`、通知的"上游变了"判据）由插件的
+    #     `upstream.root` 决定 ⇒ 默认是 `$DSH_HOME/skills`；
+    #   · **两者不同 ⇒ 上游链断开**。实证（我跑的判决实验）：
+    #       在 `$DSH_HOME/skills` 放一条只在上游的技能 ⇒ 上游目录里有它、**`omc` 的读路径里没有**
+    #       ⇒ 成员 `promote` 上去之后，**自己和队友都看不到** ⇒ **"上游更新 → 全员自动跟随"这条 OMC 核心机制在 `omc` 下失效**。
+    #   · **修法**：把 `upstream.root` 也指到 `plugin/skills`（它是插件的配置项，**可配**，
+    #     见 `plugin/lib/config.js` 的 `upstream.root = raw.upstream?.root || join(dshHome,'skills')`）。
+    #   · **为什么不改读路径回去**：那样隔离就没了（`$DSH_HOME/skills` 会被 `dsh-base` 的全局
+    #     `skill-filesystem` 行扫到 ⇒ 别的预设也看得到那 7 条，正是委托方要消除的）。
+    #   ⇒ **读写同指同一个目录：既保隔离，又保上游链闭合。**
+    #   ★ 改可移植（2026-09-14）：原来指向开发仓的 `D:/dsh/omc-agent-teams/plugin/skills`，
+    #     开源用户没有那个路径。现在**与下面 `skill-filesystem` 的 `customSkillDirs` 用同一个表达式**
+    #     ⇒ 指到 `$DSH_HOME/teamkit/skills-upstream`（安装器会建它，见 `tools/install-teamkit.mjs`）。
+    upstream:
+      root: !!js (process.env.DSH_HOME || require('node:os').homedir() + '/.dsh') + '/teamkit/skills-upstream'
+    fork:
+      # '*' = 本预设里每个 roster teammate 都拿一份自己的工作副本（fork）。
+      # 空 fork = 纯 overlay 透传 ⇒ 行为零变化，但它**看得见**"我自己有一份"。
+      members: ['*']
+    notify:
+      # 'auto' = 只跟踪"该成员真的改过"的条 ⇒ 零配置，且天然"只推该推的"。
+      tracked: auto
+    guard:
+      # **默认关**，这里显式写出以示意"有意关掉"：它只是"误操作护栏"，
+      # 只覆盖 write/edit 两个工具名，pwsh 绕得过（DECISIONS P-15/P-16 的诚实口径）。
+      enabled: false
+    # ★★ **成员释放**（委托方硬指令「必须可以删」；2026-09-14 / Round 33–35）。
+    #   底座不给移除方法 ⇒ 插件**包一层 `TeamJournal.prototype.state`** 过滤已释放的人。
+    #   **为什么这里要显式写**：两个闸门分开，且**默认值不由本文件决定**（它落在 `lib/config.js`）——
+    #   写出来是为了**让用户一眼看到"这能力存在、且怎么开"**，而不是去翻插件源码。
+    memberRelease:
+      # ★★ **默认开**（2026-09-14 / 委托方定向：「**能够撤人的功能，要默认打开**」）。
+      #   ⚠️ 这是**破坏性**动作（把成员从名单里拿掉 / 名额释放），所以配了**三道闸**：
+      #     ① `requireReason: true` ⇒ 释放**必须写理由**（不写 ⇒ 拒绝，code=2）
+      #     ② `unrelease_member` 可**撤销**（幂等）
+      #     ③ 台账落盘 ⇒ 重启后能重建"谁被释放过"
+      #   ⇒ 委托方的取舍很明确：**"我必须可以删"** 比"默认关着更安全"**更值钱** ——
+      #     底座"只增不删"是硬限制，撤人是我们**唯一的救济手段**，不该藏在一个开关后面。
+      enabled: true
+      # 只读的 `list_zombies` **单独一档**，默认开：**先看得见，再决定动谁**。
+      # （把"看得见"挂在破坏性开关后是我 Round 34 修掉的设计缺陷。）
+      readonlyTools: true
+      # 释放**必须写理由**（拒绝时 code=2，与 `promote` 的"说明是硬门"同口径）。
+      requireReason: true
+      # 巡检里"长期没活动"算闲置的阈值（只影响 `list_zombies` 的提示，不改任何东西）。
+      staleAfterMinutes: 30
+    # ── 下面两项**故意不写**：它们的默认值就是本预设要的（写了反而是噪音）──────────
+    #   · `skills:`  —— `sourceDir` 默认指向**插件包自带的 skills/**（装上就有效果），
+    #      `overwrite` 默认 `false`（**不覆盖用户已有的同名技能**；而我们自己装的旧版会**自动更新**，
+    #      见 `plugin/lib/skills.js` 的三态判据）。本预设不需要偏离这两个默认。
+    #   · `soul:`   —— `enabled` 默认 `true`（每步读 `<stateDir>/soul/<name>.md`，没有文件就什么都不做），
+    #      `dir` 默认 `''` ⇒ 落在 `$DSH_HOME/.teamkit/soul/`。本预设不需要偏离。
+    #   ⇒ **不写 ≠ 没有**；这里是**明说"用默认值"**，免得读者以为漏了。
+
+
+# ── shell ───────────────────────────────────────────────────────────────────
+
+# `shell-env` stays in the HOST composition: `apps/cli/src/web.ts` injects it to
+# publish `DSH_WEB_URL`/`DSH_WEB_MODE`, and a host row that injects a service is
+# the criterion for host-plane ownership — injection resolves before any session
+# exists, so there is no agent to key by. Behind a preset realm those variables
+# never reached the model's shell at all. Both shell tools consume the host
+# registry from here; their executors (`bash-sandbox`/`pwsh-sandbox`) are
+# host-plane too.
+- id: tool-bash
+  name: '@deepseek-ai/dsh-tool-bash'
+  disabled: !!js process.platform === 'win32'
+
+- id: tool-pwsh
+  name: '@deepseek-ai/dsh-tool-pwsh'
+  disabled: !!js process.platform !== 'win32'
+
+# ── filesystem ──────────────────────────────────────────────────────────────
+
+# Both register into the host `tools` registry and provide nothing, so
+# they need no realm. The `fs` service and its policy stay in the host.
+- id: tool-fs
+  name: '@deepseek-ai/dsh-tool-fs'
+
+- id: tool-fs-search
+  name: '@deepseek-ai/dsh-tool-fs-search'
+  config:
+    sampleOverCapGlobResults: false
+
+# ── background jobs ────────────────────────────────────────────────────────
+
+# Only the model-facing controls. The task REGISTRY stays on the host plane:
+# its producers sit outside any realm this file could put it in — `tool-bash`
+# above resolves it with `ctx.get`, and an entry-local realm here is invisible
+# to every sibling row, so `run_in_background` would answer "background jobs
+# unavailable" while these controls sat in the catalog. The registry is keyed by
+# owning agent anyway, so one host instance serves every session. What a preset
+# chooses is whether its agent can collect and stop background work at all.
+- id: tool-jobs
+  name: '@deepseek-ai/dsh-tool-jobs'
+
+# ── skills ──────────────────────────────────────────────────────────────────
+
+# The skill REGISTRY lives in the host composition and is layered per scope:
+# these rows register into THIS preset's layer of it, so they need no realm.
+# `tool-skill` gives agents on this preset the catalog and loader.
+#
+# ⚠️ **本行带 config，是「选 omc 才加载 teamkit 方法包」的关键**（2026-09-14 实测）：
+#   · 不配 config 时（默认 `includeDefaultRoots: true`）它会扫**项目根 / `$DSH_HOME/skills` /
+#     `$AGENTS_HOME/skills`** —— 而那 7 条 `teamkit*` **早就装在 `$DSH_HOME/skills`**，
+#     于是**任何预设（含 `standard`）的 agent 都看得见它们**（宿主实测：连**另一个项目的**
+#     agent（`cwd` 与本仓无关）也能看到 7 条）⇒ **这正是委托方要消除的**。
+#     ⚠️ **此处原本逐字写了那个项目的路径** —— `task-113`（开源）时改为"另一个项目"：
+#       ★ 理由：**那与本插件无关**，且**它是要随包发货的文件**（不该带任何第三方的路径）。
+#       （原始取证仍在过程区 `runs/` 与 `LANDMINES.md` —— **那里不随包发布**。）
+#   · 配成下面这样后，本预设的 agent **只看到插件自带的那一份**（`plugin/skills/`）：
+#       `includeDefaultRoots: false` ⇒ `roots()` 跳过项目根与全局根
+#       （依据：`dsh-skill-filesystem\lib\index.js:152` 与 `:171` 两处 `if (this.includeDefaultRoots …)`）
+#       `customSkillDirs: [...]`      ⇒ 始终保留（`:166`，不受该开关影响）
+#   · ⚠️ **`bundledSkillDir`（`:181-186`）不受该开关控制** —— 只有显式给了 config 才会扫；
+#     本行**不给**它 ⇒ 不扫 bundled（本机 `DSH_BUNDLED_SKILL_DIR` 亦未设）。
+#   · ⚠️ **这一行只影响"选了 omc"的 agent**；`standard` 仍走 `dsh-base` 的全局那行 ⇒
+#     **它的行为一个字节都不变**（委托方要求的"其它预设不受影响"）。
+- id: skill-filesystem
+  name: '@deepseek-ai/dsh-skill-filesystem'
+  config:
+    includeDefaultRoots: false
+    # ⚠️ **必须与上面 `dsh-teamkit` 的 `upstream.root` 指向同一个目录**（上游链闭合，见那里的注释）。
+    #   可移植形态：`!!js` 表达式读 `$DSH_HOME`（不再写死开发机盘符）。
+    customSkillDirs:
+      - !!js (process.env.DSH_HOME || require('node:os').homedir() + '/.dsh') + '/teamkit/skills-upstream'
+
+- id: tool-skill
+  name: '@deepseek-ai/dsh-tool-skill'
+
+# ── goals ───────────────────────────────────────────────────────────────────
+
+# The goal service and session driver stay on the host plane, where the Gateway
+# can resolve them. The human command and model-facing tool register into this
+# preset's scoped layers.
+- id: command-goal
+  name: '@deepseek-ai/dsh-command-goal'
+
+- id: tool-goal
+  name: '@deepseek-ai/dsh-tool-goal'
+
+# ── plan mode ───────────────────────────────────────────────────────────────
+
+# Plan state is per-agent by nature, so an entry-local realm is not a
+# workaround here — it is the correct lifetime.
+- id: planning
+  name: cordis:group
+  group: true
+  isolate:
+    planMode: true
+  config:
+    - id: plan-mode
+      name: '@deepseek-ai/dsh-plan-mode'
+      config:
+        section: |
+              You are in plan mode. Stay in plan mode until exit_plan_mode succeeds or the user switches the session mode. Imperative language to implement changes means plan the implementation, not execute it. A user's conversational agreement — including an answer confirming something you asked — approves nothing and does not end plan mode; fold the confirmed decision into the plan and submit it through exit_plan_mode.
+
+              Explore first. Use non-mutating reads, searches, static analysis, and checks to ground the plan in the actual repository. Do not edit or write files, change configuration, run formatters or code generation that rewrites tracked files, commit, or otherwise carry out the plan. Prefer existing functions and patterns over new machinery.
+
+              The tool catalog stays the same across modes for request-cache stability. These plan-mode rules override any later tool description or guidance that suggests using mutation tools; those tools remain listed to keep the tool catalog unchanged. Do not use todo_write to track this planning phase: it tracks implementation after an approved plan, while the plan itself belongs in exit_plan_mode.
+
+              Resolve discoverable facts by inspection. Use ask_user_question only for user-owned choices or material ambiguity that inspection cannot answer. Do not ask the user where code lives or how current behavior works when you can find out.
+
+              Make the plan decision-complete: state the goal and success criteria; group implementation changes by subsystem; identify public API, schema, and data-flow changes; cover edge cases, failure modes, tests, acceptance criteria, and explicit assumptions. Keep it concise enough to review but detailed enough that another engineer can implement it without making design decisions.
+
+              When ready, call exit_plan_mode with the complete plan markdown, starting with a # title. Make exit_plan_mode the only and final tool call in that assistant response: it presents the plan for approval, and implementation begins only in a later step after approval. Do not paste the final plan as a plain reply or ask "should I proceed?" through prose or ask_user_question. If review rejects it, incorporate the feedback and present again. If the review channel is unavailable or aborted, stay in plan mode and ask the user to switch modes manually; do not proceed with implementation.
+
+# ── compaction ──────────────────────────────────────────────────────────────
+
+# `compaction-basic` reads `toolResultPrune` through `ctx.get`, so the pruner must
+# share this realm rather than sit outside it.
+#
+# `tokenMeter` is deliberately NOT in this realm: the meter stays on the HOST
+# plane, and the rows here resolve that one instance. It takes no configuration,
+# keys every fold by Session, and owns the context-meter projection units the
+# browser reads for every session — behind a realm those units would come and go
+# with whichever presets happen to be mounted. What a preset chooses is whether
+# its agent compacts at all, which is `compaction-basic` below.
+- id: compaction
+  name: cordis:group
+  group: true
+  isolate:
+    compaction: true
+    toolResultPruner: true
+  config:
+    - id: compaction-basic
+      name: '@deepseek-ai/dsh-compaction-basic'
+
+    - id: command-compact
+      name: '@deepseek-ai/dsh-command-compact'
+
+    - id: tool-result-pruner
+      name: '@deepseek-ai/dsh-compaction-tool-result-pruner'
+      config:
+        thresholdChars: 8192
+        headChars: 4096
+        tailChars: 1024
+
+# ── delegation and workflows ────────────────────────────────────────────────
+
+# The `subagents` registry and its spawn/fork backends live in the HOST
+# composition: the registry is a process singleton whose cross-session queries
+# the api-proxy serves to the browser, and a provider name may only be
+# registered once. This preset contributes the delegation TOOLS, which resolve
+# that host registry.
+#
+# `workflows` is different — nothing outside an agent reads it — so every row
+# that reaches it shares one entry-local realm here, and a consumer left
+# outside would resolve a host registry this preset does not populate.
+- id: delegation
+  name: cordis:group
+  group: true
+  isolate:
+    workflowEngine: true
+  config:
+    - id: tool-subagent-control
+      name: '@deepseek-ai/dsh-tool-subagent-control'
+
+    - id: tool-subagent-list-agents
+      name: '@deepseek-ai/dsh-tool-subagent-control/list-agents'
+
+    - id: tool-subagent
+      name: '@deepseek-ai/dsh-tool-subagent'
+      config:
+        provider: spawn
+        toolName: subagent
+        modelSelectionSettings: true
+        backgroundMode: continuable
+
+    # Fork omits model selection so provider/model stay equal to the parent and
+    # the inherited history remains eligible for KV Cache reuse. This preset
+    # keeps fork continuable; parent and child inherit the same messaging tool,
+    # while the parent id and return guidance follow the inherited history.
+    - id: tool-subagent-fork
+      name: '@deepseek-ai/dsh-tool-subagent'
+      config:
+        provider: fork
+        toolName: subagent_fork
+        backgroundMode: continuable
+
+    # Production dsh does not install these optional providers. Install the
+    # matching Bundle in this Profile and restart the Host, then copy this
+    # preset and remove `disabled` from the matching tool row. Host availability
+    # alone grants no tool.
+    - id: tool-subagent-codex
+      name: '@deepseek-ai/dsh-tool-subagent'
+      disabled: true
+      config:
+        provider: codex
+        toolName: subagent_codex
+        backgroundMode: one-shot
+        maxDepth: provider-managed
+
+    - id: tool-subagent-claude-code
+      name: '@deepseek-ai/dsh-tool-subagent'
+      disabled: true
+      config:
+        provider: claude-code
+        toolName: subagent_claude_code
+        backgroundMode: one-shot
+        maxDepth: provider-managed
+
+    - id: workflow-worker-thread
+      name: '@deepseek-ai/dsh-workflow-worker-thread'
+      config:
+        provider: spawn
+
+    - id: tool-workflow
+      name: '@deepseek-ai/dsh-tool-workflow'
+
+    - id: tool-ralph
+      name: '@deepseek-ai/dsh-tool-ralph'
+      config:
+        subagentProvider: spawn
+        maxRounds: 64
+
+# ── remaining model-facing rows ─────────────────────────────────────────────
+
+- id: tool-ask-user
+  name: '@deepseek-ai/dsh-tool-ask-user'
+
+- id: tool-todo
+  name: '@deepseek-ai/dsh-tool-todo'
+  config:
+    allowParallelInProgress: true
+
+# The `web` service and its search provider stay in the host composition; only
+# the model-facing tool is per-session.
+- id: tool-web
+  name: '@deepseek-ai/dsh-tool-web'
+  config:
+    fetch: true
+    searchTimeoutMs: 60000
+
+# 2026-09-11 同步官方 standard：present 工具（官方 standard 有、我们一直缺——
+# 我那份 140 工具清单里查不到它，就是这里漏的）。
+- id: present
+  name: '@deepseek-ai/dsh-tool-present'

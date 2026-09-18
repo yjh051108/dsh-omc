@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>办公室</title>
+<style>
+  html, body { margin: 0; padding: 0; height: 100%; background: #0d0b09; overflow: hidden; }
+  #stage { position: absolute; inset: 0; display: flex; flex-direction: column; }
+  #hud {
+    flex: 0 0 26px; height: 26px; display: flex; align-items: center; gap: 8px;
+    padding: 0 8px; background: #151109; border-bottom: 1px solid #2a2118;
+    font: 11px/1 ui-monospace, Consolas, monospace; color: #c8b48a; white-space: nowrap;
+    overflow: hidden;
+  }
+  #hud .k { color: #7a6a52; }
+  #hud .w { color: #7fd18a; }
+  #hud .g { color: #c9a86a; font-weight: 600; }
+  #hud .list { color: #8a7a62; overflow: hidden; text-overflow: ellipsis; }
+  #hud .t { font-weight: 600; letter-spacing: 0.08em; }
+  #hud select {
+    background: #221a10; color: #e8dcc0; border: 1px solid #3a3028; border-radius: 3px;
+    font: 11px ui-monospace, Consolas, monospace; max-width: 190px; padding: 1px 3px;
+  }
+  #hud .btn {
+    background: #221a10; color: #c9a86a; border: 1px solid #3a3028; border-radius: 3px;
+    font: 11px ui-monospace, Consolas, monospace; padding: 2px 6px; cursor: pointer;
+  }
+  #hud .btn:hover { background: #33281a; color: #ffe9b0; }
+  #hud .rooms { color: #ff8899; }
+  #hud .s { color: #8a8a92; }   /* 休眠：灰的 —— 它在编、但没在跑 */
+  #canvas-host { position: relative; flex: 1 1 auto; min-height: 0; }
+  canvas#office-canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edges; }
+  #tooltip {
+    position: absolute; pointer-events: none; display: none; z-index: 5;
+    background: rgba(0,0,0,0.85); color: #e8dcc0; padding: 4px 6px;
+    border: 1px solid #3a3028; border-radius: 3px;
+    font: 10px/1.5 ui-monospace, Consolas, monospace;
+  }
+  #err {
+    position: absolute; inset: 0; display: none; z-index: 9; padding: 10px;
+    background: #1a0f0f; color: #ff9a8a; white-space: pre-wrap;
+    font: 11px/1.5 ui-monospace, Consolas, monospace;
+  }
+  /* ── 弹层：板 / rules / projects / 纪要（原版 office.js 只发回调，弹层由 bridge 提供） ── */
+  #modal {
+    position: absolute; inset: 0; display: none; z-index: 20;
+    background: rgba(0,0,0,0.72); padding: 14px;
+    font: 11px/1.55 ui-monospace, Consolas, monospace; color: #e8dcc0;
+  }
+  #modal.open { display: flex; flex-direction: column; }
+  #modal .box {
+    display: flex; flex-direction: column; min-height: 0; flex: 1 1 auto;
+    background: #14110c; border: 1px solid #4a3a26; border-radius: 4px; overflow: hidden;
+  }
+  #modal .bar {
+    flex: 0 0 auto; display: flex; align-items: center; gap: 8px;
+    padding: 6px 8px; background: #1e1810; border-bottom: 1px solid #3a3028;
+  }
+  #modal .bar .tag { background: #3a2e1c; color: #ffd98a; padding: 1px 6px; border-radius: 3px; }
+  #modal .bar .sp { flex: 1 1 auto; }
+  #modal .bar .x { cursor: pointer; color: #c88a6a; border: 1px solid #4a3a26; padding: 1px 7px; border-radius: 3px; }
+  #modal .bar .x:hover { background: #33281a; }
+  #modal .tabs { flex: 0 0 auto; display: flex; gap: 4px; padding: 6px 8px 0; }
+  #modal .tabs .tab {
+    cursor: pointer; padding: 3px 9px; border: 1px solid #3a3028; border-bottom: none;
+    border-radius: 3px 3px 0 0; color: #8a7a62; background: #191410;
+  }
+  #modal .tabs .tab.on { color: #ffe9b0; background: #241d13; border-color: #5a4630; }
+  #modal .body { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 8px 10px; white-space: pre-wrap; }
+  #modal .body a { color: #7fb0e8; }
+  #modal table { border-collapse: collapse; width: 100%; }
+  #modal th, #modal td { text-align: left; border-bottom: 1px solid #2a2118; padding: 3px 6px; vertical-align: top; }
+  #modal th { color: #c9a86a; position: sticky; top: 0; background: #14110c; }
+  #modal .path { color: #6a7a5a; font-size: 10px; }
+  #modal .st-pending { color: #c8b48a; }
+  #modal .st-in_progress { color: #7fd18a; }
+  #modal .st-completed { color: #6a7a5a; text-decoration: line-through; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="hud">
+    <span class="t">办公室</span>
+    <span class="k">公司</span><select id="company" title="一个会话一个公司"></select>
+    <span class="k">员工</span><span id="h-total">–</span>
+    <span class="k">在岗</span><span class="w" id="h-working">–</span>
+    <span class="k">待命</span><span id="h-idle">–</span>
+    <span class="k" title="会话已休眠，要唤醒才动（本部署是长期入驻制：人一直在编，但不在跑）">休眠</span><span class="s" id="h-sleep">–</span>
+    <span class="k">会议室</span><span class="rooms" id="h-rooms">–</span>
+    <button class="btn" id="b-board">板</button>
+    <button class="btn" id="b-rules">规则</button>
+    <button class="btn" id="b-projects">项目</button>
+    <span id="h-err"></span>
+  </div>
+  <div id="canvas-host">
+    <canvas id="office-canvas"></canvas>
+    <div id="tooltip"></div>
+    <div id="err"></div>
+  </div>
+  <div id="modal"><div class="box">
+    <div class="bar"><span class="tag" id="m-tag">—</span><span id="m-title"></span><span class="sp"></span><span class="x" id="m-x">关闭 ✕</span></div>
+    <div class="tabs" id="m-tabs"></div>
+    <div class="body" id="m-body"></div>
+  </div></div>
+</div>
+<script src="./js/office-tileatlas.js"></script>
+<script src="./js/office-camera.js"></script>
+<script src="./js/office-map.js"></script>
+<script src="./js/office-minimap.js"></script>
+<script src="./js/canvas2svg.js"></script>
+<script src="./js/office.js"></script>
+<script src="./js/bridge.js"></script>
+</body>
+</html>

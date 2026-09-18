@@ -1,0 +1,63 @@
+Copyright (c) 2026 yjh051108 and contributors
+
+★ 本仓包含多个包，**各自许可证不同** —— 以各包 `package.json` 的 `license` 字段为准：
+
+    packages/teamkit              BSD-3-Clause
+    packages/org-panel            BSD-3-Clause
+    packages/tool-output-guard    BSD-3-Clause
+    packages/issue-watch          BSD-3-Clause
+    packages/model-fit            BSD-3-Clause
+    packages/symbiote             BSD-3-Clause
+    packages/web-tools            Apache-2.0      ← ★ 注意：这一个不是 BSD
+
+    docs/company/                 方法论文档（随仓发布；无单独许可证声明）
+
+⇒ 每个包的完整许可证文本在其自身的 `LICENSE` 文件里
+  （`packages/<包>/LICENSE` —— 各包均已随附）。
+
+---------------------------------------------------------------------------
+★ 为什么这里不写一份统一的许可证：
+```
+本仓是【单仓库化的套件】（把原先 8 个分仓并成一个仓），
+而其中 web-tools 采用 Apache-2.0，其余采用 BSD-3-Clause。
+
+⇒ 若在仓根放一份统一的 BSD-3-Clause ⇒ 会与 web-tools 的声明不符
+  ⇒ 那正是本项目判据 check-license-matches-declaration 要拦的
+     （"声明与文件不符"）—— 见 docs/company/INSTALL-PITFALLS.md 一族的纪律。
+
+⇒ 所以根 LICENSE 只做两件事：
+  ① 声明版权归属
+  ② 列出【各包的实际许可证】并指向各自的 LICENSE 文件
+```
+
+---------------------------------------------------------------------------
+BSD-3-Clause（适用于上表列 BSD-3-Clause 的包）：
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice,
+   this list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its contributors
+   may be used to endorse or promote products derived from this software
+   without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGE.
+
+---------------------------------------------------------------------------
+Apache-2.0（适用于 packages/web-tools）：完整文本见 `packages/web-tools/LICENSE`。

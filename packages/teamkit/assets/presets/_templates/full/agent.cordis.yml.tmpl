@@ -1,0 +1,209 @@
+# `{{@name}}` agent preset —— **全公司**（full 形态，由 `teamkit preset-new` 生成）。
+#
+# ⚠️ **这是生成物**：`preset-new` 用**模板 + 参数**渲染出**完整文件**。
+#   · **不复制基线**（不与 `omc` 或任何已有预设共享字节，也不绑定它们的内容）；
+#   · **不引用基线**（预设是**整体挂载**，没有逐行 overlay 语义 ⇒ 本文件必须自足）；
+#   · ⚠️ **可复跑**：**改这个文件之后，再跑一次 `preset-new` 会把它覆盖回模板的样子**。
+#     要保留手改 ⇒ 先把模板改掉，或换个名字生成。
+#
+# ## full 与 lite 的区别（选哪个）
+#   · **full（本文件）** = **全公司**：lite 的全部，**再加** plan mode / 上下文压缩 /
+#     完整委派（含 fork、workflow、ralph）/ goal / web。
+#   · **lite** = 一支小队，只带干活要用的那一层。
+#   ⇒ 默认建议 lite；确实要"长任务 + 计划模式 + 对外检索"时用 full。
+#
+# ## 这文件为什么这么写（三态口径）
+#   · **每一行的名字都必须在宿主里真的装得到** —— 判据是 `mountPreset` 零 import 失败；
+#   · **服务行必须待在带 `isolate` 的组里** —— 否则发布到 root realm = 进程级，跨预设撞名，
+#     `dsh-agent-presets` 会在挂载时**拒绝**（`mount.js:368-376`）；
+#   · `!!js` 是 **DSH 既有能力**（loader 求值，`cordis-plugin-loader:289`）⇒ 用它读 `$DSH_HOME`
+#     就**不写死任何开发机盘符**。
+
+# ── identity ────────────────────────────────────────────────────────────────
+
+- id: persona
+  name: '@deepseek-ai/dsh-persona'
+  config:
+    prefix: |-
+      {{@persona}}
+    suffix: |-
+      Working directory: {{cwd}}
+      Model: {{model}}
+
+- id: agent-instructions
+  name: '@deepseek-ai/dsh-agent-instructions'
+  config:
+    maxBytes: 65536
+
+# ── 公司层（teamkit）────────────────────────────────────────────────────────
+#
+# ⚠️ **只引用，不复制**（拷进预设目录 = 两份，违反单一事实来源）。
+# `preset.id` 是**接管范围闸门**：只接管"与本次挂载同一预设"的 teammate ⇒ 别的预设零接管。
+- id: dsh-teamkit
+  name: '@dsh-external/dsh-teamkit'
+  config:
+    preset:
+      id: {{@presetId}}
+    roles:
+      dir: !!js (process.env.DSH_HOME || require('node:os').homedir() + '/.dsh') + '/teamkit/roles'
+    principles:
+      dir: !!js (process.env.DSH_HOME || require('node:os').homedir() + '/.dsh') + '/teamkit/talents/principles'
+    # ★★ **`upstream.root` 必须与下面 `customSkillDirs` 同指一个目录**，否则上游链**静默断开**
+    #    （成员 promote 后自己和队友都看不到 ⇒ "上游更新 → 全员自动跟随"失效，实测过）。
+    upstream:
+      root: !!js (process.env.DSH_HOME || require('node:os').homedir() + '/.dsh') + '/teamkit/skills-upstream'
+    fork:
+      members: ['*']
+    notify:
+      tracked: auto
+    # 成员释放（撤人）—— 底座"只增不删"是硬限制，这是唯一的救济手段。
+    # 破坏性动作配三道闸：必须写理由 / 可撤销 / 台账落盘。
+    memberRelease:
+      enabled: true
+      readonlyTools: true
+      requireReason: true
+      staleAfterMinutes: 30
+
+# ── shell ───────────────────────────────────────────────────────────────────
+
+- id: tool-bash
+  name: '@deepseek-ai/dsh-tool-bash'
+  disabled: !!js process.platform === 'win32'
+
+- id: tool-pwsh
+  name: '@deepseek-ai/dsh-tool-pwsh'
+  disabled: !!js process.platform !== 'win32'
+
+# ── filesystem ──────────────────────────────────────────────────────────────
+
+- id: tool-fs
+  name: '@deepseek-ai/dsh-tool-fs'
+
+- id: tool-fs-search
+  name: '@deepseek-ai/dsh-tool-fs-search'
+  config:
+    sampleOverCapGlobResults: false
+
+# ── background jobs ────────────────────────────────────────────────────────
+
+- id: tool-jobs
+  name: '@deepseek-ai/dsh-tool-jobs'
+
+# ── skills ──────────────────────────────────────────────────────────────────
+#
+# 带 config ⇒ 本预设的 agent **只看到插件自带的那一份**（不扫全局根，避免越界可见）。
+- id: skill-filesystem
+  name: '@deepseek-ai/dsh-skill-filesystem'
+  config:
+    includeDefaultRoots: false
+    customSkillDirs:
+      - !!js (process.env.DSH_HOME || require('node:os').homedir() + '/.dsh') + '/teamkit/skills-upstream'
+
+- id: tool-skill
+  name: '@deepseek-ai/dsh-tool-skill'
+
+# ── goals ───────────────────────────────────────────────────────────────────
+
+- id: command-goal
+  name: '@deepseek-ai/dsh-command-goal'
+
+- id: tool-goal
+  name: '@deepseek-ai/dsh-tool-goal'
+
+# ── plan mode ───────────────────────────────────────────────────────────────
+
+- id: planning
+  name: cordis:group
+  group: true
+  isolate:
+    planMode: true
+  config:
+    - id: plan-mode
+      name: '@deepseek-ai/dsh-plan-mode'
+
+# ── compaction ──────────────────────────────────────────────────────────────
+#
+# `compaction-basic` 通过 `ctx.get` 读 `toolResultPrune` ⇒ pruner 必须与之共享 realm。
+- id: compaction
+  name: cordis:group
+  group: true
+  isolate:
+    compaction: true
+    toolResultPruner: true
+  config:
+    - id: compaction-basic
+      name: '@deepseek-ai/dsh-compaction-basic'
+
+    - id: command-compact
+      name: '@deepseek-ai/dsh-command-compact'
+
+    - id: tool-result-pruner
+      name: '@deepseek-ai/dsh-compaction-tool-result-pruner'
+      config:
+        thresholdChars: 8192
+        headChars: 4096
+        tailChars: 1024
+
+# ── delegation and workflows ────────────────────────────────────────────────
+
+- id: delegation
+  name: cordis:group
+  group: true
+  isolate:
+    workflowEngine: true
+  config:
+    - id: tool-subagent-control
+      name: '@deepseek-ai/dsh-tool-subagent-control'
+
+    - id: tool-subagent-list-agents
+      name: '@deepseek-ai/dsh-tool-subagent-control/list-agents'
+
+    - id: tool-subagent
+      name: '@deepseek-ai/dsh-tool-subagent'
+      config:
+        provider: spawn
+        toolName: subagent
+        modelSelectionSettings: true
+        backgroundMode: continuable
+
+    # fork 不给 model selection：父子 provider/model 相等 ⇒ 继承的历史仍可复用 KV Cache。
+    - id: tool-subagent-fork
+      name: '@deepseek-ai/dsh-tool-subagent'
+      config:
+        provider: fork
+        toolName: subagent_fork
+        backgroundMode: continuable
+
+    - id: workflow-worker-thread
+      name: '@deepseek-ai/dsh-workflow-worker-thread'
+      config:
+        provider: spawn
+
+    - id: tool-workflow
+      name: '@deepseek-ai/dsh-tool-workflow'
+
+    - id: tool-ralph
+      name: '@deepseek-ai/dsh-tool-ralph'
+      config:
+        subagentProvider: spawn
+        maxRounds: 64
+
+# ── 其余面向模型的行 ─────────────────────────────────────────────────────────
+
+- id: tool-ask-user
+  name: '@deepseek-ai/dsh-tool-ask-user'
+
+- id: tool-todo
+  name: '@deepseek-ai/dsh-tool-todo'
+  config:
+    allowParallelInProgress: true
+
+# `web` 服务与搜索 provider 留在宿主组合；只有面向模型的工具是 per-session。
+- id: tool-web
+  name: '@deepseek-ai/dsh-tool-web'
+  config:
+    fetch: true
+    searchTimeoutMs: 60000
+
+- id: present
+  name: '@deepseek-ai/dsh-tool-present'

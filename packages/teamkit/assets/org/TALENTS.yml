@@ -1,0 +1,100 @@
+# TALENTS —— Talent Market（手工版）
+#
+# 原版 OMC 的 Market 是一个**独立服务**：registry.json + git 仓库池 + MCP 三个工具
+# （search_candidates / get_talent_info / list_available_talents —— 三个名字在
+#  `docs/PRODUCT_OVERVIEW.md:326-328` 逐字核过），HR 检索 → 短名单 → CEO 选人 →
+# **`execute_hire()` 全程确定性、不调模型**（`src/onemancompany/agents/onboarding.py:867-1122`）。
+# DSH 没有这一层，所以这里是它的**手工等价物**：
+# 一个可 grep 的索引 → 按 role/skills/level 过滤 → 读 talents/<file> → 用它的 onboarding 造上岗材料。
+#
+# ⚠️ **更正（2026-09-14 / Round 88）**：本行**原先写的是**「`execute_hire()` **23 步**纯代码」。
+#   那个**"23" 是我自己编的、不可核对** —— 实测：
+# ```
+#   · 原版全仓 grep「23 步 / 23.step / twenty-three」⇒ **0 命中**（原版从没这么说过）
+#   · 指到的那段（`onboarding.py:867-1122`，即 `execute_hire` 全体）里，
+#     各种数法都数不出 23：
+#       段内**步骤注释** 22 条 · 段内**函数调用** 18 行 · 段内**赋值** 30 处 · 段内 if 分支 25 处
+# ```
+#   ⇒ **真相：那是一个"听起来很具体"的假数字**，而且它已经**扩散到 5 个文件**
+#     （本文件 + `skills/teamkit-assemble` + `skills/teamkit-org` + `notes/omc-talent-market.md` 等）。
+#   ⇒ **修法**：改成**只写"全程确定性、不调模型"**（这是我能给的**性质**），
+#     并把**可核的位置**（`onboarding.py:867-1122`）留在原地 —— **不写数不清的数**。
+#
+# 用法（三步）：
+#   1) 按 role / skills / use_when 过滤下面的表，挑 1–2 个候选；
+#   2) 读 talents/<file>（它的 acceptance_style 与 write_scope 是派活依据）；
+#   3) 缺口就**现写一份 Talent 落盘，并注册到下面的表里** —— 下次它就是这个组织的一部分。
+#
+# 硬规矩：优先复用，不要现编（现编的身份下次就找不回来）。判据写不出来 = 这活还没想清，先别招人。
+schema: teamkit/talents@1
+
+talents:
+  - name: director
+    file: director.md
+    role: coordination
+    level: lead
+    skills: [拆活, 派活, 核读数, 定判据]
+    gate_policy: review
+    use_when: "管一个辖区：接活→拆清→派人→自己核读数再上报。产出是【判据+人+节奏】不是代码；不自己写代码、不替执行者跑探针"
+
+  - name: research-lead
+    file: research-lead.md
+    role: research
+    level: lead
+    skills: [拆题, 信息检索, 来源交叉验证]
+    gate_policy: review
+    use_when: "要一条研究线的结论，且结论必须可追溯到来源"
+
+  - name: writer
+    file: writer.md
+    role: writing
+    level: ic
+    skills: [结构化写作, 术语一致, 删冗]
+    gate_policy: review
+    use_when: "把已有结论组织成给人看的文本；不负责找事实"
+
+  - name: reviewer
+    file: reviewer.md
+    role: review
+    level: ic
+    skills: [构造反例, 复现, 判据核对]
+    gate_policy: review
+    use_when: "任何交付要一个带证据的判决；只读 + 报告，不改东西"
+
+  - name: engineer
+    file: engineer.md
+    role: engineering
+    level: ic
+    skills: [实现, 自测, 定位失败]
+    gate_policy: review
+    use_when: "按判据把代码写出来，并把原始读数贴回来"
+
+  - name: coo
+    file: coo.md
+    role: coordination
+    level: coo
+    skills: [跨线裁决, 切分, 风险汇总]
+    gate_policy: review
+    use_when: "两条以上线在跑、且有资源冲突或改切分的需要时才设"
+
+  - name: chief
+    file: chief.md
+    role: coordination
+    level: ceo
+    skills: [裁决, 停损, 对外口径]
+    gate_policy: review
+    use_when: "要对外口径、不可逆动作、或'什么时候停'要有人拍板时才设"
+
+  - name: marketer
+    file: marketer.md
+    role: marketing
+    level: ic
+    skills: [选题, 文案钩子, 转化路径设计, 发布节奏, 归因埋点]
+    gate_policy: review
+    use_when: "已经有人群和商品，缺的是'让他们看见并下单'；或要设计内容→转化的可归因路径"
+    added: "2026-09-12 · 001 项目缺口现写（自有渠道推流），已登记回索引"
+
+# 缺口怎么补（= 原版 HR 的 search_candidates 手工版）：
+#   1. 从上面的 use_when 反推缺的是**技能**还是**判断**；
+#   2. 缺判断 → 这活该 Lead 自己干，别外包；
+#   3. 缺技能 → 写 talents/<new-name>.md（按 talents/_SPEC.md 的字段），然后**补进上面的表**。
